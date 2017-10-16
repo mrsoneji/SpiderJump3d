@@ -6,6 +6,24 @@ local _M = {}
 
 local capture
 
+function _M.startGroup(grp, blur)
+    local innerSnapshot = display.newSnapshot(grp.width+blur/2, grp.height+blur/2);
+    
+    innerSnapshot.canvas:insert(grp);
+    innerSnapshot.canvasMode = "discard";
+    innerSnapshot.fill.effect = "filter.blurGaussian";
+    innerSnapshot.fill.effect.horizontal.blurSize = blur;
+    innerSnapshot.fill.effect.vertical.blurSize = blur;
+    innerSnapshot:invalidate("canvas");
+    
+    local outerSnapshot = display.newSnapshot(innerSnapshot.width, innerSnapshot.height);
+    outerSnapshot.canvas:insert(innerSnapshot);
+    outerSnapshot.canvasMode = "discard";
+    outerSnapshot:invalidate("canvas");
+    
+    return outerSnapshot;
+end
+
 function _M.start()
     capture = display.captureScreen()
     capture.x, capture.y = display.contentCenterX, display.contentCenterY
