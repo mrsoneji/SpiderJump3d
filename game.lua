@@ -2,18 +2,22 @@ local composer = require "composer"
 local blur = require "blur"
 local machine = require('statemachine')
 
-
-local fsm
-
 local scene = composer.newScene()
 
 -- resources
-local spider
+local spiders = {}
 local blurredGroup
 local background
 
 function scene:create( event )
 	local sceneGroup = self.view
+
+	-- loading background
+	background = display.newImage("wall.jpg")
+	background.x = display.contentWidth / 2
+	background.y = display.contentHeight / 2
+
+	sceneGroup:insert(background)
 
 	-- loading spider
 	local sequenceData =
@@ -27,22 +31,76 @@ function scene:create( event )
 	local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
 	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
 
-	spider = display.newSprite( imageSheet, sequenceData )
+	for i = 1, 10 do
+		local spider = display.newSprite( imageSheet, sequenceData )
 
-	spider:scale(0.10, 0.10)
+		spider:scale(0.10, 0.10)
+		spider.x = math.random(500)
+		spider.y = math.random(500)
+		spider.fsm = machine.create({
+		  initial = 'idle',
+		  events = {
+		    { name = 'roam',  from = 'idle',  to = 'roaming' },
+		    { name = 'stay',  from = 'roaming',  to = 'idle' },
+		    { name = 'attack',  from = 'waiting',  to = 'scarejump' },
+		    { name = 'wait',  from = 'roaming',  to = 'waiting' }
+		  },
+		  callbacks = {
+		    onroam =    function(self, event, from, to, idx)
+		    	local angle = math.random(180)
+				local angleX = spiders[idx].x + math.cos( math.rad( angle ) )
+				local angleY = spiders[idx].y + math.sin( math.rad( angle ) )
+
+		    	spiders[idx]:rotate(angle)
+		        transition.to ( spiders[idx], { time=2500, x=angleX , y=angleY , onComplete=function() 
+		        	spiders[idx].fsm:wait(idx)
+		        end})
+			end,
+		    onidle =    function(self, event, from, to)      print('stay')         end,
+		    onattack =    function(self, event, from, to)
+		    end,
+		    onwaiting = function (self, event, from, to, idx)
+		    	timer.performWithDelay(350, function() 
+		    		-- spiders[idx].fsm:attack(idx) 
+		    	end)
+		    end,
+		    onscarejump =    function(self, event, from, to, idx) 
+		    	background.fill.effect = "filter.blurGaussian"
+				
+				transition.to( background.fill.effect.horizontal, { time=1000, blurSize=30, transition=easing.outCirc } )
+				transition.to( background.fill.effect.vertical, { time=1000, blurSize=30, transition=easing.outCirc } )			
+
+				for i, v in ipairs(spiders) do 
+					if (i ~= idx) then
+						v.fill.effect = "filter.blurGaussian"
+						transition.to( v.fill.effect.horizontal, { time=1000, blurSize=30, transition=easing.outCirc } )
+						transition.to( v.fill.effect.vertical, { time=1000, blurSize=30, transition=easing.outCirc } )			
+					end
+				end
+
+				transition.scaleTo( spiders[idx], { xScale=20, yScale=20, time=300, transition=easing.inExpo } )		    
+
+				spiders[idx]:toFront()
+			end
+		  }
+		})
+		spider.index = table.getn(spiders) + 1
+		spider:addEventListener("touch", function(event)
+		  if(event.phase == "ended") then
+		    spider.fsm:attack(spider.index)
+		  end
+		end)
+		spiders[table.getn(spiders) + 1] = spider
+		spider.fsm:roam(table.getn(spiders))	
+	
+		sceneGroup:insert(spider)
+	end
 
 	local rect1 = display.newRect(display.contentWidth / 4, display.contentHeight / 2, 10, display.contentHeight)
 	local rect2 = display.newRect(display.contentWidth - (display.contentWidth / 4), display.contentHeight / 2, 10, display.contentHeight)
 
-	-- loading background
-	background = display.newImage("wall.jpg")
-	background.x = display.contentWidth / 2
-	background.y = display.contentHeight / 2
-
-	sceneGroup:insert(background)
 	sceneGroup:insert(rect1)
 	sceneGroup:insert(rect2)
-	sceneGroup:insert(spider)
 
 	rect1:toFront(); rect2:toFront()
 end
@@ -56,10 +114,11 @@ function scene:show( event )
 	if (event.phase == "did") then
 
 		-- spider.x = display.contentWidth/2 ; spider.y = display.contentHeight/2
-		spider.x = 0
-		spider.y = display.contentHeight/2
-		spider:play()
-
+		for i,v in ipairs(spiders) do 
+			v.y = display.contentHeight/2
+			v:play()
+		end
+		
 		timer.performWithDelay(2000, function()
 
 --			background.fill.effect = "filter.blurGaussian"
@@ -68,38 +127,6 @@ function scene:show( event )
 			
 		end
 		)
-
-		fsm = machine.create({
-		  initial = 'idle',
-		  events = {
-		    { name = 'roam',  from = 'idle',  to = 'roaming' },
-		    { name = 'stay',  from = 'roaming',  to = 'idle' },
-		    { name = 'attack',  from = 'waiting',  to = 'scarejump' },
-		    { name = 'wait',  from = 'roaming',  to = 'waiting' }
-		  },
-		  callbacks = {
-		    onroam =    function(self, event, from, to)      transition.to ( spider, { time=2500, x=display.contentWidth / 2, onComplete=function() fsm:wait() end } )        end,
-		    onidle =    function(self, event, from, to)      print('stay')         end,
-		    onattack =    function(self, event, from, to)
-		    end,
-		    onwaiting = function (self, event, from, to)
-		    	print("waiting")
-		    	timer.performWithDelay(350, function() fsm:attack() end )
-		    end,
-		    onscarejump =    function(self, event, from, to) 
-		    	background.fill.effect = "filter.blurGaussian"
-
-				transition.to( background.fill.effect.horizontal, { time=1000, blurSize=15, transition=easing.outCirc } )
-				transition.to( background.fill.effect.vertical, { time=1000, blurSize=15, transition=easing.outCirc } )			
-
-				transition.scaleTo( spider, { xScale=20, yScale=20, time=300, transition=easing.inExpo } )		    
-
-				spider:toFront()
-			end
-		  }
-		})
-
-		fsm:roam()
 
  	end
 end
