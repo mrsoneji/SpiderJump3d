@@ -31,18 +31,19 @@ function scene:create( event )
 	local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
 	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
 
-	for i = 1, 200 do
+	for i = 1, 50 do
 		local spider = display.newSprite( imageSheet, sequenceData )
 
 		spider:scale(0.25, 0.25)
 		spider.x = math.random(display.contentWidth)
 		spider.y = math.random(display.contentHeight)
+		spider.blendMode = "ond"
 		spider.fsm = machine.create({
 		  initial = 'idle',
 		  events = {
 		    { name = 'roam',  from = {'idle', 'roaming'},  to = 'roaming' },
 		    { name = 'stay',  from = 'roaming',  to = 'idle' },
-		    { name = 'attack',  from = {'waiting'},  to = 'scarejump' },
+		    { name = 'attack',  from = {'waiting', 'roaming'},  to = 'scarejump' },
 		    { name = 'wait',  from = 'roaming',  to = 'waiting' }
 		  },
 		  callbacks = {
@@ -51,13 +52,24 @@ function scene:create( event )
 				local angleX = spiders[idx].x + 50 * math.cos( math.rad( angle - 90 ) )
 				local angleY = spiders[idx].y + 50 * math.sin( math.rad( angle - 90 ) )
 
+				spiders[idx]:play()
 				spiders[idx].rotation = 0
 		    	spiders[idx]:rotate(angle)
 		        transition.to ( spiders[idx], { time=math.random(1500, 5000), x=angleX , y=angleY , onComplete=function() 
-		        	spiders[idx].fsm:roam(idx)
+		        	if (math.random(5) == 5) then
+		        		spiders[idx].fsm:stay(idx)
+		        	else
+		        		spiders[idx].fsm:roam(idx)
+		        	end
 		        end})
 			end,
-		    onidle =    function(self, event, from, to)      print('stay')         end,
+		    onidle =    function(self, event, from, to, idx)
+		    	spiders[idx]:pause()
+
+		    	timer.performWithDelay(math.random(1500, 5000), function()
+					spiders[idx].fsm:roam(idx)
+		    	end)
+		    end,
 		    onattack =    function(self, event, from, to)
 		    end,
 		    onwaiting = function (self, event, from, to, idx)
@@ -66,6 +78,7 @@ function scene:create( event )
 		    	end)
 		    end,
 		    onscarejump =    function(self, event, from, to, idx) 
+		    	spiders[idx].blendMode = "one"
 		    	background.fill.effect = "filter.blurGaussian"
 				
 				transition.to( background.fill.effect.horizontal, { time=1000, blurSize=30, transition=easing.outCirc } )
