@@ -31,29 +31,30 @@ function scene:create( event )
 	local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
 	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
 
-	for i = 1, 10 do
+	for i = 1, 200 do
 		local spider = display.newSprite( imageSheet, sequenceData )
 
-		spider:scale(0.10, 0.10)
-		spider.x = math.random(500)
-		spider.y = math.random(500)
+		spider:scale(0.25, 0.25)
+		spider.x = math.random(display.contentWidth)
+		spider.y = math.random(display.contentHeight)
 		spider.fsm = machine.create({
 		  initial = 'idle',
 		  events = {
-		    { name = 'roam',  from = 'idle',  to = 'roaming' },
+		    { name = 'roam',  from = {'idle', 'roaming'},  to = 'roaming' },
 		    { name = 'stay',  from = 'roaming',  to = 'idle' },
-		    { name = 'attack',  from = 'waiting',  to = 'scarejump' },
+		    { name = 'attack',  from = {'waiting'},  to = 'scarejump' },
 		    { name = 'wait',  from = 'roaming',  to = 'waiting' }
 		  },
 		  callbacks = {
 		    onroam =    function(self, event, from, to, idx)
-		    	local angle = math.random(180)
-				local angleX = spiders[idx].x + math.cos( math.rad( angle ) )
-				local angleY = spiders[idx].y + math.sin( math.rad( angle ) )
+		    	local angle = math.random(360)
+				local angleX = spiders[idx].x + 50 * math.cos( math.rad( angle - 90 ) )
+				local angleY = spiders[idx].y + 50 * math.sin( math.rad( angle - 90 ) )
 
+				spiders[idx].rotation = 0
 		    	spiders[idx]:rotate(angle)
-		        transition.to ( spiders[idx], { time=2500, x=angleX , y=angleY , onComplete=function() 
-		        	spiders[idx].fsm:wait(idx)
+		        transition.to ( spiders[idx], { time=math.random(1500, 5000), x=angleX , y=angleY , onComplete=function() 
+		        	spiders[idx].fsm:roam(idx)
 		        end})
 			end,
 		    onidle =    function(self, event, from, to)      print('stay')         end,
@@ -73,8 +74,8 @@ function scene:create( event )
 				for i, v in ipairs(spiders) do 
 					if (i ~= idx) then
 						v.fill.effect = "filter.blurGaussian"
-						transition.to( v.fill.effect.horizontal, { time=1000, blurSize=30, transition=easing.outCirc } )
-						transition.to( v.fill.effect.vertical, { time=1000, blurSize=30, transition=easing.outCirc } )			
+						--transition.to( v.fill.effect.horizontal, { time=1000, blurSize=30, transition=easing.outCirc } )
+						--transition.to( v.fill.effect.vertical, { time=1000, blurSize=30, transition=easing.outCirc } )			
 					end
 				end
 
