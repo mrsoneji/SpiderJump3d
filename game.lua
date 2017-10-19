@@ -13,13 +13,47 @@ local background
 -- sounds
 local spider_attacking_sound
 
+function getNearbyAnt( pCenter, pObjects, pRange, pDebug )
+    if ( pCenter == nil ) or (pObjects == nil) then  --make sure the objects exists
+        return false
+    end
+    
+    local pDebug = pDebug or false
+
+    if pDebug == true then
+        local rect = display.newRect( pCenter.x, pCenter.y, pRange*2, pRange*2 )
+        rect:setFillColor( 0,0,0,0 )
+        rect:setStrokeColor( 1,0,0 )
+        rect.strokeWidth = 1
+    end
+
+    local left      = pCenter.x - pRange
+    local right     = pCenter.x + pRange
+    local top       = pCenter.y - pRange
+    local bottom    = pCenter.y + pRange
+
+    local result = {}
+
+    for i=1,#pObjects do
+        if pObjects[i] ~= nil then
+            if pObjects[i].x >= left and pObjects[i].x <= right then
+                if pObjects[i].y >= top and pObjects[i].y <= bottom then
+                    result[#result+1] = pObjects[i]
+                end
+            end
+        end
+    end
+
+    return result
+end
+
 function scene:create( event )
 	local sceneGroup = self.view
 
 	display.setDefault("magTextureFilter", "nearest")
 	display.setDefault("minTextureFilter", "nearest")
 
-	spider_attacking_sound = audio.loadSound( "spider_attacking.mp3" )
+	spider_attacking_sound = audio.loadSound( "spider_attack_uagh.wav" )
 
 	-- loading background
 	background = display.newImage("wall.jpg")
@@ -87,6 +121,11 @@ function scene:create( event )
 		    	timer.performWithDelay(math.random(1500, 4000), function()
 					spiders[idx].fsm:roam(idx)
 		    	end)
+
+				local nearbyAnt = getNearbyAnt(spiders[idx], ants, 100)[1]
+				if (nearbyAnt ~= nil) then
+					print(nearbyAnt.index)
+				end
 		    end,
 		    onattack =    function(self, event, from, to)
 		    end,
@@ -128,7 +167,7 @@ function scene:create( event )
 		spider.color = "none"
 		spider.enterFrame = function ( self )
 			if (self.fsm.current == "idle") then
-				if (system.getTimer() - self.timer > 150) then
+				if (system.getTimer() - self.timer > 75) then
 					if (self.color == "none") then
 						self:setFillColor(0, 0, 255, 255)
 						self.color = "blue"
