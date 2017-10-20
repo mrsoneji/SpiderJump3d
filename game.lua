@@ -12,6 +12,7 @@ local background
 
 -- sounds
 local spider_attacking_sound
+local ant_splat_sound
 
 function getNearbyAnt( pCenter, pObjects, pRange, pDebug )
     if ( pCenter == nil ) or (pObjects == nil) then  --make sure the objects exists
@@ -54,6 +55,7 @@ function scene:create( event )
 	display.setDefault("minTextureFilter", "nearest")
 
 	spider_attacking_sound = audio.loadSound( "spider_attack_uagh.wav" )
+	ant_splat_sound = audio.loadSound( "splat.wav" )
 
 	-- loading background
 	background = display.newImage("wall.jpg")
@@ -229,10 +231,11 @@ function scene:create( event )
 		  	ondying = function(self, event, from, to, idx)
 		  		transition.pause(ants[idx].transitionId)
 
-				ants[idx].timeScale = .3
+		    	ants[idx]:setFillColor(0, 255, 0, 125)
+				ants[idx].timeScale = math.random(1, 10) / 10
+				audio.play ( ant_splat_sound )
 
-		    	timer.performWithDelay(math.random(250, 750), function()
-		    		ants[idx]:setFillColor(0, 255, 0, 125)
+		    	timer.performWithDelay(math.random(250, 7500), function()
 		    		ants[idx]:pause()
 		    	end)		  		
 		  	end,
