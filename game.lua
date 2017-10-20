@@ -222,9 +222,20 @@ function scene:create( event )
 		    { name = 'roam',  from = {'idle', 'roaming'},  to = 'roaming' },
 		    { name = 'stay',  from = 'roaming',  to = 'idle' },
 		    { name = 'attack',  from = {'waiting', 'roaming'},  to = 'scarejump' },
-		    { name = 'wait',  from = 'roaming',  to = 'waiting' }
+		    { name = 'wait',  from = 'roaming',  to = 'waiting' },
+		    { name = 'die',  from = {'waiting', 'roaming', 'idle'},  to = 'dying' }
 		  },
 		  callbacks = {
+		  	ondying = function(self, event, from, to, idx)
+		  		transition.pause(ants[idx].transitionId)
+
+				ants[idx].timeScale = .3
+
+		    	timer.performWithDelay(math.random(250, 750), function()
+		    		ants[idx]:setFillColor(0, 255, 0, 125)
+		    		ants[idx]:pause()
+		    	end)		  		
+		  	end,
 		    onroam =    function(self, event, from, to, idx)
 		    	local angle = math.random(360)
 				local angleX = ants[idx].x + 120 * math.cos( math.rad( angle - 90 ) )
@@ -238,7 +249,7 @@ function scene:create( event )
 				ants[idx]:play()
 				ants[idx].rotation = 0
 		    	ants[idx]:rotate(angle)
-		        transition.to ( ants[idx], { time=math.random(750, 1500), x=angleX , y=angleY , onComplete=function() 
+		        ants[idx].transitionId = transition.to ( ants[idx], { time=math.random(750, 1500), x=angleX , y=angleY , onComplete=function() 
 		        	if (math.random(5) == 5) then
 		        		ants[idx].fsm:stay(idx)
 		        	else
@@ -250,7 +261,9 @@ function scene:create( event )
 		    	ants[idx]:pause()
 
 		    	timer.performWithDelay(math.random(1500, 5000), function()
-					ants[idx].fsm:roam(idx)
+		    		if (ants[idx].fsm.current ~= 'dying') then
+						ants[idx].fsm:roam(idx)
+					end
 		    	end)
 		    end,
 		    onattack =    function(self, event, from, to)
@@ -284,7 +297,11 @@ function scene:create( event )
 		  }
 		})
 		ant.index = table.getn(ants) + 1
-		
+		ant:addEventListener("touch", function(event)
+		  if(event.phase == "ended") then
+		    ant.fsm:die(ant.index)
+		  end
+		end)		
 		ants[table.getn(ants) + 1] = ant
 		ant.fsm:roam(table.getn(ants))	
 	
