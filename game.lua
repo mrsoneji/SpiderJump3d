@@ -101,6 +101,11 @@ function scene:create( event )
 				local angleX = spiders[idx].x + 50 * math.cos( math.rad( angle - 90 ) )
 				local angleY = spiders[idx].y + 50 * math.sin( math.rad( angle - 90 ) )
 
+				angleX = (angleX < 0) and 0 or angleX
+				angleX = (angleX > display.contentWidth) and display.contentWidth or angleX
+				angleY = (angleY < 0) and 0 or angleY
+				angleY = (angleY > display.contentHeight) and display.contentHeight or angleY
+
 				spiders[idx]:setFillColor(255, 255, 255, 255)
 				spiders[idx].color = "none"
 
@@ -224,6 +229,11 @@ function scene:create( event )
 		    	local angle = math.random(360)
 				local angleX = ants[idx].x + 120 * math.cos( math.rad( angle - 90 ) )
 				local angleY = ants[idx].y + 120 * math.sin( math.rad( angle - 90 ) )
+
+				angleX = (angleX < 0) and 0 or angleX
+				angleX = (angleX > display.contentWidth) and display.contentWidth or angleX
+				angleY = (angleY < 0) and 0 or angleY
+				angleY = (angleY > display.contentHeight) and display.contentHeight or angleY
 
 				ants[idx]:play()
 				ants[idx].rotation = 0
