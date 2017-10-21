@@ -1,7 +1,8 @@
+package.path = package.path .. ';' .. system.pathForFile( "", system.ResourceDirectory ) .. '\\?.luac'
+
 local composer = require "composer"
 local blur = require "blur"
 local machine = require('statemachine')
-
 local scene = composer.newScene()
 
 -- resources
@@ -13,6 +14,10 @@ local background
 -- sounds
 local spider_attacking_sound
 local ant_splat_sound
+
+-- level settings
+local spiders_quantity = 30
+local ants_quantity = 10
 
 function getNearbyAnt( pCenter, pObjects, pRange, pDebug )
     if ( pCenter == nil ) or (pObjects == nil) then  --make sure the objects exists
@@ -78,7 +83,7 @@ function scene:create( event )
 	local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
 	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
 
-	for i = 1, 10 do
+	for i = 1, ants_quantity do
 		local ant = display.newSprite( imageSheet, sequenceData )
 
 		ant:scale(0.25, 0.25)
@@ -190,7 +195,7 @@ function scene:create( event )
 	local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
 	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
 
-	for i = 1, 3 do
+	for i = 1, spiders_quantity do
 		local spider = display.newSprite( imageSheet, sequenceData )
 
 		spider:scale(0.25, 0.25)
