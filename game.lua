@@ -57,9 +57,17 @@ local ant_splat_sound
 _G.spiders_quantity = composer.getVariable("spiders_quantity")
 _G.ants_quantity = composer.getVariable("ants_quantity")
 
-function checkIfWin(idx)
+function antKilledEvent(idx)
 	if (_.every(ants, function(o) return o.fsm.current == "dying" end)) then
 		showFinishWindow()
+	end
+
+	local spider = _.detect(
+			spiders, function(o) local antAimed =  o.antAimed == nil and 0 or o.antAimed; return antAimed == idx end
+		)
+
+	if (spider ~= nil) then
+		spider.fsm:attack(spider.index)		
 	end
 end
 
@@ -268,7 +276,7 @@ function scene:create( event )
 		    		ants[idx]:pause()
 		    	end)		  		
 
-		    	checkIfWin()
+		    	antKilledEvent(idx)
 		  	end,
 		    onroam =    function(self, event, from, to, idx)
 		    	local angle = math.random(360)
@@ -368,7 +376,7 @@ function scene:create( event )
 		  events = {
 		    { name = 'roam',  from = {'killing', 'idle', 'roaming'},  to = 'roaming' },
 		    { name = 'stay',  from = 'roaming',  to = 'idle' },
-		    { name = 'attack',  from = {'waiting', 'roaming'},  to = 'scarejump' },
+		    { name = 'attack',  from = {'idle', 'waiting', 'roaming'},  to = 'scarejump' },
 		    { name = 'wait',  from = 'roaming',  to = 'waiting' },
 		    { name = 'kill',  from = 'idle',  to = 'killing' }
 		  },
@@ -423,6 +431,8 @@ function scene:create( event )
 					spider.aimCircle.strokeWidth = 2
 					spider.aimCircle:setStrokeColor( 1, 0, 0 )
 					spider.antAimed = nearbyAnt.index
+					
+					sceneGroup:insert(spider.aimCircle)
 					
 			    	timer.performWithDelay(math.random(1500, 4000), function()
 						spiders[idx].fsm:kill(idx, nearbyAnt.index)
