@@ -212,6 +212,11 @@ function scene:create( event )
 				transition.to ( spiders[idx], { time=350, x=ants[antidx].x, y=ants[antidx].y, transition=easing.outCirc, onComplete=function() 
 					ants[antidx].fsm:die(antidx)
 					spiders[idx].fsm:roam(idx)
+					if (spiders[idx].antAimed ~= nil and spiders[idx].aimCircle ~= nil) then
+						spiders[idx].antAimed = nil
+						spiders[idx].aimCircle:removeSelf()
+						spiders[idx].aimCircle = nil
+					end					
 		        end})		  	
 		  	end,
 		    onroam =    function(self, event, from, to, idx)
@@ -248,7 +253,12 @@ function scene:create( event )
 
 				local nearbyAnt = getNearbyAnt(spiders[idx], ants, 100)[1]
 				if (nearbyAnt ~= nil) then
-					print("killing: " .. nearbyAnt.index)
+					spider.aimCircle = display.newCircle(ants[nearbyAnt.index].x, ants[nearbyAnt.index].y, 10)
+					spider.aimCircle:setFillColor(0,0,0,0)
+					spider.aimCircle.strokeWidth = 2
+					spider.aimCircle:setStrokeColor( 1, 0, 0 )
+					spider.antAimed = nearbyAnt.index
+					
 			    	timer.performWithDelay(math.random(1500, 4000), function()
 						spiders[idx].fsm:kill(idx, nearbyAnt.index)
 			    	end)
@@ -307,6 +317,10 @@ function scene:create( event )
 						self.color = "none"
 					end
 					spider.timer = system.getTimer()
+				end
+				if (self.antAimed ~= nil and self.aimCircle ~= nil) then
+					self.aimCircle.x = ants[self.antAimed].x
+					self.aimCircle.y = ants[self.antAimed].y
 				end
 			end
 		end
