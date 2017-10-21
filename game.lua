@@ -272,7 +272,7 @@ function scene:create( event )
 				ants[idx].timeScale = math.random(1, 10) / 10
 				audio.play ( ant_splat_sound )
 
-		    	timer.performWithDelay(math.random(250, 7500), function()
+		    	timer.performWithDelay(math.random(250, 750), function()
 		    		ants[idx]:pause()
 		    	end)		  		
 
@@ -424,24 +424,26 @@ function scene:create( event )
 		    onidle =    function(self, event, from, to, idx)
 		    	spiders[idx]:pause()
 
-				local nearbyAnt = getNearbyAnt(spiders[idx], ants, 100)[1]
-				if (nearbyAnt ~= nil) then
-					spider.aimCircle = display.newCircle(ants[nearbyAnt.index].x, ants[nearbyAnt.index].y, 10)
-					spider.aimCircle:setFillColor(0,0,0,0)
-					spider.aimCircle.strokeWidth = 2
-					spider.aimCircle:setStrokeColor( 1, 0, 0 )
-					spider.antAimed = nearbyAnt.index
-					
-					sceneGroup:insert(spider.aimCircle)
-					
-			    	timer.performWithDelay(math.random(1500, 4000), function()
-						spiders[idx].fsm:kill(idx, nearbyAnt.index)
-			    	end)
-				else					
-			    	timer.performWithDelay(math.random(1500, 4000), function()
-						spiders[idx].fsm:roam(idx)
-			    	end)					
-				end
+		    	timer.performWithDelay(1000, function()
+					local nearbyAnt = getNearbyAnt(spiders[idx], ants, 100)[1]
+					if (nearbyAnt ~= nil) then
+						spider.aimCircle = display.newCircle(ants[nearbyAnt.index].x, ants[nearbyAnt.index].y, 10)
+						spider.aimCircle:setFillColor(0,0,0,0)
+						spider.aimCircle.strokeWidth = 2
+						spider.aimCircle:setStrokeColor( 1, 0, 0 )
+						spider.antAimed = nearbyAnt.index
+						
+						sceneGroup:insert(spider.aimCircle)
+						
+				    	timer.performWithDelay(math.random(1500, 4000), function()
+							spiders[idx].fsm:kill(idx, nearbyAnt.index)
+				    	end)
+					else					
+				    	timer.performWithDelay(math.random(1500, 4000), function()
+							spiders[idx].fsm:roam(idx)
+				    	end)					
+					end		    		
+		    	end)
 		    end,
 		    onattack =    function(self, event, from, to)
 		    end,
