@@ -3,6 +3,22 @@ package.path = package.path .. ';' .. system.pathForFile( "", system.ResourceDir
 local composer = require "composer"
 local blur = require "blur"
 local machine = require('statemachine')
+local _ = require("underscore")
+
+_G.GUI = require( "widget_candy" )
+
+_G.GUI.LoadTheme("theme_1", "themes/theme_1/")
+_G.GUI.LoadTheme("theme_2", "themes/theme_2/")
+_G.GUI.LoadTheme("theme_3", "themes/theme_3/")
+_G.GUI.LoadTheme("theme_4", "themes/theme_4/")
+_G.GUI.LoadTheme("theme_5", "themes/theme_5/")
+_G.GUI.LoadTheme("theme_3", "themes/theme_3/")
+_G.GUI.LoadTheme("theme_7", "themes/theme_7/")
+
+_G.GUI.ShowTouches(true, 10, {1,.5,0})
+
+_G.theme = "theme_2"
+
 local scene = composer.newScene()
 
 -- resources
@@ -16,8 +32,125 @@ local spider_attacking_sound
 local ant_splat_sound
 
 -- level settings
-local spiders_quantity = 30
-local ants_quantity = 10
+_G.spiders_quantity = composer.getVariable("spiders_quantity")
+_G.ants_quantity = composer.getVariable("ants_quantity")
+
+function checkIfWin(idx)
+	if (_.every(ants, function(o) return o.fsm.current == "dying" end)) then
+		showFinishWindow()
+	end
+end
+
+function showRestartWindow ()
+	local o = nil
+     o = _G.GUI.GetHandle("Win1")
+     if (o ~= nil) then
+     	return
+     end
+
+	local window = _G.GUI.NewWindow(
+		{
+			x      = "center",
+			y      = "center",
+			width = "50%",
+			height = "20%",
+			parentGroup = nil,
+			name   = "Win1",
+			theme  = _G.theme,
+			caption  = "                  UUGGHHHH!",
+			gradientColor1 = { 1,.5,0,0.3 },
+			gradientColor2 = { 0,0,0,.3 },
+			gradientDirection = "up"
+		} 
+	)
+	local restartButton = _G.GUI.NewButton(
+        {
+        	parentGroup = "Win1",
+        	name = "restartButton",
+            x               = "center", 
+            y               = "38%", 
+            theme      = _G.theme,
+            textAlign  = "left",
+            caption = "restart",
+            pressColor = {1,1,1,.25},
+            onRelease = function( event ) 
+            	composer.removeScene("game")
+            	composer.gotoScene("restart")
+        	end
+        })	
+
+	_G.GUI.GetHandle("Win1"):layout(true) 	
+
+	scene.view:insert(window)
+	-- scene.view:insert(restartButton)
+end
+
+function showFinishWindow ()
+	local o = nil
+     o = _G.GUI.GetHandle("Win1")
+     if (o ~= nil) then
+     	return
+     end
+
+	local window = _G.GUI.NewWindow(
+		{
+			x      = "center",
+			y      = "center",
+			width = "50%",
+			height = "20%",
+			parentGroup = nil,
+			name   = "Win1",
+			theme  = _G.theme,
+			caption  = "                  Completed",
+			gradientColor1 = { 1,.5,0,0.3 },
+			gradientColor2 = { 0,0,0,.3 },
+			gradientDirection = "up"
+		} 
+	)
+	local restartButton = _G.GUI.NewButton(
+        {
+        	parentGroup = "Win1",
+        	name = "restartButton",
+            x               = "4%", 
+            y               = "38%", 
+            width      = "37%",
+            height      = "auto",
+            theme      = _G.theme,
+            textAlign  = "left",
+            icon = 48,
+            caption = "restart",
+            pressColor = {1,1,1,.25},
+            onRelease = function( event ) 
+            	composer.removeScene("game")
+            	composer.gotoScene("restart")
+        	end            
+        })		
+    local nextButton = _G.GUI.NewButton(
+        {
+        	parentGroup = "Win1",
+        	name = "nextButton",
+            x               = "66%", 
+            y               = "38%", 
+            width      = "30%",
+            height      = "auto",
+            theme      = _G.theme,
+            textAlign  = "left",
+            icon = 6,
+            caption = "next",
+            pressColor = {1,1,1,.25},
+            onRelease = function( event ) 
+            	composer.setVariable("spiders_quantity", _G.spiders_quantity + 1)
+            	composer.setVariable("ants_quantity", _G.ants_quantity + 3)
+
+            	composer.removeScene("game")
+            	composer.gotoScene("restart")
+        	end            
+        })
+
+	_G.GUI.GetHandle("Win1"):layout(true) 	
+
+	scene.view:insert(window)
+end
 
 function getNearbyAnt( pCenter, pObjects, pRange, pDebug )
     if ( pCenter == nil ) or (pObjects == nil) then  --make sure the objects exists
@@ -83,7 +216,7 @@ function scene:create( event )
 	local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
 	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
 
-	for i = 1, ants_quantity do
+	for i = 1, tonumber(_G.ants_quantity) do
 		local ant = display.newSprite( imageSheet, sequenceData )
 
 		ant:scale(0.25, 0.25)
@@ -110,6 +243,8 @@ function scene:create( event )
 		    	timer.performWithDelay(math.random(250, 7500), function()
 		    		ants[idx]:pause()
 		    	end)		  		
+
+		    	checkIfWin()
 		  	end,
 		    onroam =    function(self, event, from, to, idx)
 		    	local angle = math.random(360)
@@ -164,7 +299,8 @@ function scene:create( event )
 						end
 					end
 
-					transition.scaleTo( ants[idx], { xScale=20, yScale=20, time=300, transition=easing.inExpo } )		    
+					transition.scaleTo( ants[idx], { xScale=20, yScale=20, time=300, transition=easing.inExpo, onComplete=function()
+					end } )		    
 
 					ants[idx]:toFront()	    			
 	    		end)
@@ -195,7 +331,7 @@ function scene:create( event )
 	local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
 	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
 
-	for i = 1, spiders_quantity do
+	for i = 1, tonumber(_G.spiders_quantity) do
 		local spider = display.newSprite( imageSheet, sequenceData )
 
 		spider:scale(0.25, 0.25)
@@ -246,7 +382,7 @@ function scene:create( event )
 				spiders[idx].rotation = 0
 		    	spiders[idx]:rotate(angle)
 		        transition.to ( spiders[idx], { time=math.random(1500, 5000), x=angleX , y=angleY , onComplete=function() 
-		        	if (math.random(5) == 5) then
+		        	if (math.random(3) == 3) then
 		        		spiders[idx].fsm:stay(idx)
 		        	else
 		        		spiders[idx].fsm:roam(idx)
@@ -300,9 +436,11 @@ function scene:create( event )
 					transition.to( spiders[idx], { y=spiders[idx].y - 60, time=100, transition=easing.inExpo, onComplete=function(event)
 						transition.scaleTo( spiders[idx], { xScale=20, yScale=20, time=250, transition=easing.inExpo } )		    
 						transition.to( spiders[idx], { y=spiders[idx].y + 250, time=150, transition=easing.inExpo, onComplete=function(event)
+							timer.performWithDelay(1000, function()
+								showRestartWindow()
+							end)
 						end } )		    
 					end } )		    
-					
 
 					spiders[idx]:toFront()	    			
 	    		end)
@@ -345,17 +483,17 @@ function scene:create( event )
 	local rect1 = display.newRect(display.contentWidth / 4, display.contentHeight / 2, 10, display.contentHeight)
 	local rect2 = display.newRect(display.contentWidth - (display.contentWidth / 4), display.contentHeight / 2, 10, display.contentHeight)
 
+	rect1:toFront(); rect2:toFront()
+
 	sceneGroup:insert(rect1)
 	sceneGroup:insert(rect2)
-
-	rect1:toFront(); rect2:toFront()
 end
 
 function scene:show( event )
 	local sceneGroup = self.view
 
 	if (event.phase == "will") then
-
+        
 	end
 	if (event.phase == "did") then
 
@@ -368,15 +506,6 @@ function scene:show( event )
 			v.y = display.contentHeight/2
 			v:play()
 		end		
-		timer.performWithDelay(2000, function()
-
---			background.fill.effect = "filter.blurGaussian"
-
-
-			
-		end
-		)
-
  	end
 end
 
@@ -384,6 +513,18 @@ function scene:hide( event )
 end
 
 function scene:destroy( event )
+     local o = nil
+     o = _G.GUI.GetHandle("Win1")
+     if (o ~= nil) then
+     	 print("destroy win1")
+         o:destroy()
+     end
+
+     o = _G.GUI.GetHandle("restartButton")
+     if (o ~= nil) then
+     	print("destroy restartButton")
+         o:destroy()
+     end
 end
 
 scene:addEventListener("create", scene)
