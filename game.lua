@@ -4,6 +4,28 @@ local composer = require "composer"
 local blur = require "blur"
 local machine = require('statemachine')
 local _ = require("underscore")
+local appodeal = require( "plugin.appodeal" )
+
+local adNetwork = "admob"
+local appID = "DontTouchTheSpider"
+
+local function adListener( event )
+	-- event table includes:
+	-- 		event.provider
+	--		event.isError (e.g. true/false )
+	
+	local msg = event.response
+
+	-- just a quick debug message to check what response we got from the library
+	-- print("Message received from the ads library: ", msg)
+  --_G.GUI.GetHandle("TXT_DEBUG"):set("caption", msg)
+    appodeal.show( "banner", { yAlign="top" } )
+
+	if event.isError then
+    --print("error")
+	else
+	end
+end
 
 _G.GUI = require( "widget_candy" )
 
@@ -191,6 +213,8 @@ end
 function scene:create( event )
 	local sceneGroup = self.view
 
+	appodeal.init( adListener, { appKey="2b48850c59ebc26513bceb49edfbeda08aa473f0c5dc9846" } )
+	
 	display.setDefault("magTextureFilter", "nearest")
 	display.setDefault("minTextureFilter", "nearest")
 
