@@ -214,7 +214,7 @@ function scene:create( event )
 	local sceneGroup = self.view
 
 	appodeal.init( adListener, { appKey="2b48850c59ebc26513bceb49edfbeda08aa473f0c5dc9846" } )
-	
+
 	display.setDefault("magTextureFilter", "nearest")
 	display.setDefault("minTextureFilter", "nearest")
 
@@ -243,7 +243,7 @@ function scene:create( event )
 	for i = 1, tonumber(_G.ants_quantity) do
 		local ant = display.newSprite( imageSheet, sequenceData )
 
-		ant:scale(0.25, 0.25)
+		ant:scale(0.35, 0.35)
 		ant.x = math.random(display.contentWidth)
 		ant.y = math.random(display.contentHeight)
 		ant:setFillColor(255, 0, 255, 255)
@@ -277,7 +277,7 @@ function scene:create( event )
 
 				angleX = (angleX < 0) and 0 or angleX
 				angleX = (angleX > display.contentWidth) and display.contentWidth or angleX
-				angleY = (angleY < 0) and 0 or angleY
+				angleY = (angleY < 50) and 50 or angleY
 				angleY = (angleY > display.contentHeight) and display.contentHeight or angleY
 
 				ants[idx]:play()
@@ -358,7 +358,7 @@ function scene:create( event )
 	for i = 1, tonumber(_G.spiders_quantity) do
 		local spider = display.newSprite( imageSheet, sequenceData )
 
-		spider:scale(0.25, 0.25)
+		spider:scale(0.35, 0.35)
 		spider.x = math.random(display.contentWidth)
 		spider.y = math.random(display.contentHeight)
 		spider:setFillColor(255, 255, 255, 255)
@@ -396,7 +396,7 @@ function scene:create( event )
 
 				angleX = (angleX < 0) and 0 or angleX
 				angleX = (angleX > display.contentWidth) and display.contentWidth or angleX
-				angleY = (angleY < 0) and 0 or angleY
+				angleY = (angleY < 50) and 50 or angleY
 				angleY = (angleY > display.contentHeight) and display.contentHeight or angleY
 
 				spiders[idx]:setFillColor(255, 255, 255, 255)
