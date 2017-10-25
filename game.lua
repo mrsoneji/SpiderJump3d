@@ -9,6 +9,64 @@ local appodeal = require( "plugin.appodeal" )
 local adNetwork = "admob"
 local appID = "DontTouchTheSpider"
 
+local score = composer.getVariable("score")
+
+local text_score
+
+function load_records()
+	local contents = "0"
+
+	-- Path for the file to read
+	local path = system.pathForFile( "records", system.DocumentsDirectory )
+	 
+	-- Open the file handle
+	local file, errorString = io.open( path, "r" )
+	 
+	if not file then
+	    -- Error occurred; output the cause
+	    print( "File error: " .. errorString )
+	else
+	    -- Read data from file
+	    contents = file:read( "*a" )
+	    -- Output the file contents
+	    print( "Contents of " .. path .. "\n" .. contents )
+
+	    -- Close the file handle
+	    io.close( file )
+	end
+	 
+	file = nil	
+
+	return contents
+end
+
+local function save_score()
+
+	composer.setVariable("score", score)
+	text_score.text = score
+	if (tonumber(load_records()) > score) then
+		return
+	end
+
+	-- Path for the file to write
+	local path = system.pathForFile( "records", system.DocumentsDirectory )
+	 
+	-- Open the file handle
+	local file, errorString = io.open( path, "w" )
+	 
+	if not file then
+	    -- Error occurred; output the cause
+	    print( "File error: " .. errorString )
+	else
+	    -- Write data to file
+	    file:write( score )
+	    -- Close the file handle
+	    io.close( file )
+	end
+	 
+	file = nil
+end
+
 local function adListener( event )
 	-- event table includes:
 	-- 		event.provider
@@ -221,6 +279,7 @@ end
 function scene:create( event )
 	local sceneGroup = self.view
 
+	text_score = display.newText( score, 15, 15, native.newFont("Gill Sans", 24), 24 )
 
 	display.setDefault("magTextureFilter", "nearest")
 	display.setDefault("minTextureFilter", "nearest")
@@ -352,6 +411,8 @@ function scene:create( event )
 		ant:addEventListener("touch", function(event)
 		  if(event.phase == "ended") then
 		    ant.fsm:die(ant.index)
+		    score = score + 1
+		    save_score()
 		  end
 		end)		
 		ants[table.getn(ants) + 1] = ant
@@ -554,6 +615,7 @@ function scene:show( event )
 			v.y = display.contentHeight/2
 			v:play()
 		end		
+
  	end
 end
 
@@ -573,6 +635,9 @@ function scene:destroy( event )
      	print("destroy restartButton")
          o:destroy()
      end
+
+     text_score:removeSelf()
+     text_score = nil
 end
 
 scene:addEventListener("create", scene)
