@@ -125,7 +125,7 @@ function antKilledEvent(idx)
 		)
 
 	if (spider ~= nil) then
-		spider.fsm:attack(spider.index)		
+		spider.fsm:attack(spider.index)
 	end
 end
 
@@ -157,6 +157,8 @@ function showRestartWindow ()
         	name = "restartButton",
             x               = "center", 
             y               = "38%", 
+			width = "42%",
+			height = "auto",            
             theme      = _G.theme,
             textAlign  = "left",
             caption = "restart",
@@ -189,7 +191,7 @@ function showFinishWindow ()
 			parentGroup = nil,
 			name   = "Win1",
 			theme  = _G.theme,
-			caption  = "                  Completed",
+			caption  = "                     Completed",
 			gradientColor1 = { 1,.5,0,0.3 },
 			gradientColor2 = { 0,0,0,.3 },
 			gradientDirection = "up"
@@ -201,7 +203,7 @@ function showFinishWindow ()
         	name = "restartButton",
             x               = "4%", 
             y               = "38%", 
-            width      = "37%",
+            width      = "42%",
             height      = "auto",
             theme      = _G.theme,
             textAlign  = "left",
@@ -219,7 +221,7 @@ function showFinishWindow ()
         	name = "nextButton",
             x               = "66%", 
             y               = "38%", 
-            width      = "30%",
+            width      = "42%",
             height      = "auto",
             theme      = _G.theme,
             textAlign  = "left",
@@ -449,9 +451,25 @@ function scene:create( event )
 		    { name = 'stay',  from = 'roaming',  to = 'idle' },
 		    { name = 'attack',  from = {'idle', 'waiting', 'roaming'},  to = 'scarejump' },
 		    { name = 'wait',  from = 'roaming',  to = 'waiting' },
-		    { name = 'kill',  from = 'idle',  to = 'killing' }
+		    { name = 'kill',  from = 'idle',  to = 'killing' },
+		    { name = 'die',  from = 'idle',  to = 'dying' }
 		  },
 		  callbacks = {
+		  	ondying = function(self, event, from, to, idx)
+		    	spiders[idx]:setFillColor(0, 255, 0, 125)
+				spiders[idx].timeScale = math.random(1, 10) / 10
+				audio.play ( ant_splat_sound )
+
+				if (spiders[idx].antAimed ~= nil and spiders[idx].aimCircle ~= nil) then
+					spiders[idx].antAimed = nil
+					spiders[idx].aimCircle:removeSelf()
+					spiders[idx].aimCircle = nil
+				end	
+				
+		    	timer.performWithDelay(math.random(250, 750), function()
+		    		spiders[idx]:pause()
+		    	end)		  		
+		  	end,		  
 		  	onkill =    function(self, event, from, to, idx, antidx)
 				transition.to ( spiders[idx], { time=350, x=ants[antidx].x, y=ants[antidx].y, transition=easing.outCirc, onComplete=function() 
 					ants[antidx].fsm:die(antidx)
@@ -577,9 +595,13 @@ function scene:create( event )
 		spider.index = table.getn(spiders) + 1
 		Runtime:addEventListener("enterFrame", spider)
 		spider:addEventListener("touch", function(event)
-		  if(event.phase == "ended") then
-		    spider.fsm:attack(spider.index)
-		  end
+			if (spider.fsm.current ~= "idle") then
+				  if(event.phase == "ended") then
+				    spider.fsm:attack(spider.index)
+				  end
+			else 
+				spider.fsm:die(spider.index)
+			end
 		end)
 		spiders[table.getn(spiders) + 1] = spider
 		spider.fsm:roam(table.getn(spiders))	
