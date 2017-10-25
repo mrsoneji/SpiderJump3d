@@ -1,4 +1,4 @@
-package.path = package.path .. ';' .. system.pathForFile( "", system.ResourceDirectory ) .. '\\?.luac'
+-- package.path = package.path .. ';' .. system.pathForFile( "", system.ResourceDirectory ) .. '\\?.luac'
 
 local composer = require "composer"
 local blur = require "blur"
@@ -13,16 +13,16 @@ local function adListener( event )
 	-- event table includes:
 	-- 		event.provider
 	--		event.isError (e.g. true/false )
-	
+
 	local msg = event.response
 
 	-- just a quick debug message to check what response we got from the library
 	-- print("Message received from the ads library: ", msg)
-  --_G.GUI.GetHandle("TXT_DEBUG"):set("caption", msg)
+
     appodeal.show( "banner", { yAlign="top" } )
 
 	if event.isError then
-    --print("error")
+    	
 	else
 	end
 end
@@ -221,7 +221,6 @@ end
 function scene:create( event )
 	local sceneGroup = self.view
 
-	appodeal.init( adListener, { appKey="2b48850c59ebc26513bceb49edfbeda08aa473f0c5dc9846" } )
 
 	display.setDefault("magTextureFilter", "nearest")
 	display.setDefault("minTextureFilter", "nearest")
@@ -249,8 +248,12 @@ function scene:create( event )
 	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
 
 	for i = 1, tonumber(_G.ants_quantity) do
+		local antSplat = display.newImage("splat01.png")
 		local ant = display.newSprite( imageSheet, sequenceData )
 
+		ant.splat = antSplat
+		ant.splat.x = -1000
+		ant.splat.y = -1000
 		ant:scale(0.35, 0.35)
 		ant.x = math.random(display.contentWidth)
 		ant.y = math.random(display.contentHeight)
@@ -271,6 +274,12 @@ function scene:create( event )
 		    	ants[idx]:setFillColor(0, 255, 0, 125)
 				ants[idx].timeScale = math.random(1, 10) / 10
 				audio.play ( ant_splat_sound )
+
+				ants[idx].splat.visible = true
+				ants[idx].splat.x = ants[idx].x
+				ants[idx].splat.y = ants[idx].y
+				ants[idx].splat:scale(.5, .5)
+--				ants[idx].splat:toBack()
 
 		    	timer.performWithDelay(math.random(250, 750), function()
 		    		ants[idx]:pause()
@@ -348,6 +357,7 @@ function scene:create( event )
 		ants[table.getn(ants) + 1] = ant
 		ant.fsm:roam(table.getn(ants))	
 	
+		sceneGroup:insert(antSplat)
 		sceneGroup:insert(ant)
 	end
 
@@ -532,6 +542,8 @@ function scene:show( event )
         
 	end
 	if (event.phase == "did") then
+
+		appodeal.init( adListener, { appKey="2b48850c59ebc26513bceb49edfbeda08aa473f0c5dc9846", smartBanners = false } )
 
 		-- spider.x = display.contentWidth/2 ; spider.y = display.contentHeight/2
 		for i,v in ipairs(spiders) do 
