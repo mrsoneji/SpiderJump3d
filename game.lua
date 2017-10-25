@@ -342,6 +342,9 @@ function scene:create( event )
 				ants[idx].splat:scale(.5, .5)
 --				ants[idx].splat:toBack()
 
+				local scores = display.newText( "+1", ants[idx].x, ants[idx].y, native.newFont("Gill Sans", 9), 9 )
+				transition.to ( scores, { time=1500, y=ants[idx].y - 15, onComplete=function() scores:removeSelf() end })
+
 		    	timer.performWithDelay(math.random(250, 750), function()
 		    		ants[idx]:pause()
 		    	end)		  		
@@ -460,12 +463,14 @@ function scene:create( event )
 				spiders[idx].timeScale = math.random(1, 10) / 10
 				audio.play ( ant_splat_sound )
 
+				local scores = display.newText( "+3", spiders[idx].x, spiders[idx].y, native.newFont("Gill Sans", 9), 9 )
+				transition.to ( scores, { time=1500, y=spiders[idx].y - 15, onComplete=function() scores:removeSelf() end })
 				if (spiders[idx].antAimed ~= nil and spiders[idx].aimCircle ~= nil) then
 					spiders[idx].antAimed = nil
 					spiders[idx].aimCircle:removeSelf()
 					spiders[idx].aimCircle = nil
 				end	
-				
+
 		    	timer.performWithDelay(math.random(250, 750), function()
 		    		spiders[idx]:pause()
 		    	end)		  		
