@@ -310,9 +310,9 @@ function scene:create( event )
 	display.setDefault("magTextureFilter", "nearest")
 	display.setDefault("minTextureFilter", "nearest")
 
-	spider_attacking_sound = audio.loadSound( "spider_attack_uagh.wav" )
-	ant_splat_sound = audio.loadSound( "splat.wav" )
-	rain_drop_sound = audio.loadSound ( "raindrops.wav" )
+	spider_attacking_sound = audio.loadSound( "assets/spider_attack_uagh.wav" )
+	ant_splat_sound = audio.loadSound( "assets/splat.wav" )
+	rain_drop_sound = audio.loadSound ( "assets/raindrops.wav" )
 
 	-- loading background
 	background = display.newImage("wall.jpg")
@@ -582,7 +582,7 @@ function scene:create( event )
 		    	end)
 		    end,
 		    onscarejump =    function(self, event, from, to, idx) 
-				rect1.alpha = 1; rect2.alpha = 2
+				-- rect1.alpha = 1; rect2.alpha = 2
 	    		audio.play( spider_attacking_sound )
 
 	    		timer.performWithDelay(100, function()
@@ -599,8 +599,8 @@ function scene:create( event )
 						end
 					end
 
-				transition.to(background, { x = 100, y = 100, time = 100})
-				transition.scaleTo(background, { xScale = .35, yScale = .35, time = 100})
+				--transition.to(background, { x = 100, y = 100, time = 100})
+				--transition.scaleTo(background, { xScale = .35, yScale = .35, time = 100})
 
 					transition.to( spiders[idx], { y=spiders[idx].y - 60, time=100, transition=easing.inExpo, onComplete=function(event)
 						transition.scaleTo( spiders[idx], { xScale=20, yScale=20, time=250, transition=easing.inExpo } )		    
@@ -657,7 +657,7 @@ function scene:create( event )
 	rect1 = display.newRect(display.contentWidth / 4, display.contentHeight / 2, 10, display.contentHeight)
 	rect2 = display.newRect(display.contentWidth - (display.contentWidth / 4), display.contentHeight / 2, 10, display.contentHeight)
 
-	rect1.alpha = 0; rect2.alpha = 0
+	rect1.alpha = 1; rect2.alpha = 1
 	rect1:toFront(); rect2:toFront()
 
 	sceneGroup:insert(rect1)
