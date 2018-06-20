@@ -500,7 +500,7 @@ function scene:create( event )
 					scores:removeSelf() 
 				end })
 
-				if (spiders[idx].antAimed ~= nil and spiders[idx].aimCircle ~= nil) then
+				if (spiders[idx].antAimed ~= nil or spiders[idx].aimCircle ~= nil) then
 					spiders[idx].antAimed = nil
 					spiders[idx].aimCircle:removeSelf()
 					spiders[idx].aimCircle = nil
@@ -709,6 +709,18 @@ function scene:destroy( event )
      text_score:removeSelf()
      text_score = nil
 end
+
+function scene:key(event)
+
+    if ( event.keyName == "back" ) then
+        composer.removeScene('game')
+		composer.gotoScene('mainmenu', { effect = 'crossFade', time = 333 })
+		
+		return true
+	end
+end
+
+Runtime:addEventListener( "key", scene )
 
 scene:addEventListener("create", scene)
 scene:addEventListener("show", scene)
