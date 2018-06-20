@@ -452,6 +452,29 @@ function scene:create( event )
 		    { name = 'kill',  from = 'idle',  to = 'killing' }
 		  },
 		  callbacks = {
+		  	ondying = function(self, event, from, to, idx)
+		    	spiders[idx]:setFillColor(0, 255, 0, 125)
+				spiders[idx].timeScale = math.random(1, 10) / 10
+				audio.play ( ant_splat_sound )
+
+				local scores = display.newText( "+300", spiders[idx].x, spiders[idx].y, native.newFont("Gill Sans", 11), 11 )
+			    score = score + 300
+			    save_score()
+
+				transition.to ( scores, { time=1500, y=spiders[idx].y - 15, onComplete=function() 
+					scores:removeSelf() 
+				end })
+
+				if (spiders[idx].antAimed ~= nil or spiders[idx].aimCircle ~= nil) then
+					spiders[idx].antAimed = nil
+					spiders[idx].aimCircle:removeSelf()
+					spiders[idx].aimCircle = nil
+				end	
+
+		    	timer.performWithDelay(math.random(250, 750), function()
+		    		spiders[idx]:pause()
+		    	end)		  		
+		  	end,		  
 		  	onkill =    function(self, event, from, to, idx, antidx)
 				transition.to ( spiders[idx], { time=350, x=ants[antidx].x, y=ants[antidx].y, transition=easing.outCirc, onComplete=function() 
 					ants[antidx].fsm:die(antidx)
@@ -639,6 +662,18 @@ function scene:destroy( event )
      text_score:removeSelf()
      text_score = nil
 end
+
+function scene:key(event)
+
+    if ( event.keyName == "back" ) then
+        composer.removeScene('game')
+		composer.gotoScene('mainmenu', { effect = 'crossFade', time = 333 })
+		
+		return true
+	end
+end
+
+Runtime:addEventListener( "key", scene )
 
 scene:addEventListener("create", scene)
 scene:addEventListener("show", scene)
