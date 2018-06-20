@@ -13,6 +13,40 @@ local score = composer.getVariable("score")
 
 local text_score
 
+_G.GUI = require( "widget_candy" )
+
+_G.GUI.LoadTheme("theme_1", "themes/theme_1/")
+_G.GUI.LoadTheme("theme_2", "themes/theme_2/")
+_G.GUI.LoadTheme("theme_3", "themes/theme_3/")
+_G.GUI.LoadTheme("theme_4", "themes/theme_4/")
+_G.GUI.LoadTheme("theme_5", "themes/theme_5/")
+_G.GUI.LoadTheme("theme_3", "themes/theme_3/")
+_G.GUI.LoadTheme("theme_7", "themes/theme_7/")
+
+_G.GUI.ShowTouches(true, 10, {1,.5,0})
+
+_G.theme = "theme_2"
+
+local scene = composer.newScene()
+
+-- resources
+local spiders = {}
+local ants = {}
+local blurredGroup
+local background
+local rect1, rect2
+
+-- sounds
+local spider_attacking_sound
+local ant_splat_sound
+
+-- ambient sounds
+local rain_drop_sound
+
+-- level settings
+_G.spiders_quantity = composer.getVariable("spiders_quantity")
+_G.ants_quantity = composer.getVariable("ants_quantity")
+
 function load_records()
 	local contents = "0"
 
@@ -85,36 +119,6 @@ local function adListener( event )
 	end
 end
 
-_G.GUI = require( "widget_candy" )
-
-_G.GUI.LoadTheme("theme_1", "themes/theme_1/")
-_G.GUI.LoadTheme("theme_2", "themes/theme_2/")
-_G.GUI.LoadTheme("theme_3", "themes/theme_3/")
-_G.GUI.LoadTheme("theme_4", "themes/theme_4/")
-_G.GUI.LoadTheme("theme_5", "themes/theme_5/")
-_G.GUI.LoadTheme("theme_3", "themes/theme_3/")
-_G.GUI.LoadTheme("theme_7", "themes/theme_7/")
-
-_G.GUI.ShowTouches(true, 10, {1,.5,0})
-
-_G.theme = "theme_2"
-
-local scene = composer.newScene()
-
--- resources
-local spiders = {}
-local ants = {}
-local blurredGroup
-local background
-
--- sounds
-local spider_attacking_sound
-local ant_splat_sound
-
--- level settings
-_G.spiders_quantity = composer.getVariable("spiders_quantity")
-_G.ants_quantity = composer.getVariable("ants_quantity")
-
 function antKilledEvent(idx)
 	if (_.every(ants, function(o) return o.fsm.current == "dying" end)) then
 		showFinishWindow()
@@ -125,7 +129,7 @@ function antKilledEvent(idx)
 		)
 
 	if (spider ~= nil) then
-		spider.fsm:attack(spider.index)		
+		spider.fsm:attack(spider.index)
 	end
 end
 
@@ -157,6 +161,8 @@ function showRestartWindow ()
         	name = "restartButton",
             x               = "center", 
             y               = "38%", 
+			width = "42%",
+			height = "auto",            
             theme      = _G.theme,
             textAlign  = "left",
             caption = "restart",
@@ -189,7 +195,7 @@ function showFinishWindow ()
 			parentGroup = nil,
 			name   = "Win1",
 			theme  = _G.theme,
-			caption  = "                  Completed",
+			caption  = "                     Completed",
 			gradientColor1 = { 1,.5,0,0.3 },
 			gradientColor2 = { 0,0,0,.3 },
 			gradientDirection = "up"
@@ -201,7 +207,7 @@ function showFinishWindow ()
         	name = "restartButton",
             x               = "4%", 
             y               = "38%", 
-            width      = "37%",
+            width      = "42%",
             height      = "auto",
             theme      = _G.theme,
             textAlign  = "left",
@@ -217,9 +223,9 @@ function showFinishWindow ()
         {
         	parentGroup = "Win1",
         	name = "nextButton",
-            x               = "66%", 
+            x               = "54%", 
             y               = "38%", 
-            width      = "30%",
+            width      = "42%",
             height      = "auto",
             theme      = _G.theme,
             textAlign  = "left",
@@ -234,6 +240,26 @@ function showFinishWindow ()
             	composer.gotoScene("restart")
         	end            
         })
+
+    local newText = _G.GUI.NewText(
+        {
+            x               = "2.5%",                
+            y               = "1.8%", 
+            width           = "100%",
+            --height          = get_value_according_orientation("9%", "15%"),
+            scale           = 1,
+            -- height          = "auto",
+            name            = "TXT_SCORE",            
+            fontSize        = 24,
+            font            = "Gill Sans",
+            parentGroup     = "Win1",                     
+            align           = "center",
+            theme           = _G.theme, 
+            caption         = "Your score: " .. score,
+            textAlign       = "center",
+            textColor       = {0,0,0}
+        } 
+    )
 
 	_G.GUI.GetHandle("Win1"):layout(true) 	
 
@@ -279,13 +305,14 @@ end
 function scene:create( event )
 	local sceneGroup = self.view
 
-	text_score = display.newText( score, 15, 15, native.newFont("Gill Sans", 24), 24 )
+	text_score = display.newText( score, 50, 15, native.newFont("Gill Sans", 24), 24 )
 
 	display.setDefault("magTextureFilter", "nearest")
 	display.setDefault("minTextureFilter", "nearest")
 
-	spider_attacking_sound = audio.loadSound( "spider_attack_uagh.wav" )
-	ant_splat_sound = audio.loadSound( "splat.wav" )
+	spider_attacking_sound = audio.loadSound( "assets/spider_attack_uagh.wav" )
+	ant_splat_sound = audio.loadSound( "assets/splat.wav" )
+	rain_drop_sound = audio.loadSound ( "assets/raindrops.wav" )
 
 	-- loading background
 	background = display.newImage("wall.jpg")
@@ -340,6 +367,15 @@ function scene:create( event )
 				ants[idx].splat:scale(.5, .5)
 --				ants[idx].splat:toBack()
 
+				local scores = display.newText( "+100", ants[idx].x, ants[idx].y, native.newFont("Gill Sans", 9), 9 )
+			    score = score + 100
+			    save_score()
+
+				transition.to ( scores, { time=1500, y=ants[idx].y - 15, onComplete=function() 
+
+					scores:removeSelf() 
+				end })
+
 		    	timer.performWithDelay(math.random(250, 750), function()
 		    		ants[idx]:pause()
 		    	end)		  		
@@ -359,7 +395,7 @@ function scene:create( event )
 				ants[idx]:play()
 				ants[idx].rotation = 0
 		    	ants[idx]:rotate(angle)
-		        ants[idx].transitionId = transition.to ( ants[idx], { time=math.random(750, 1500), x=angleX , y=angleY , onComplete=function() 
+		        ants[idx].transitionId = transition.to ( ants[idx], { time=math.random(1500, 3000), x=angleX , y=angleY , onComplete=function() 
 		        	if (math.random(5) == 5) then
 		        		ants[idx].fsm:stay(idx)
 		        	else
@@ -411,8 +447,6 @@ function scene:create( event )
 		ant:addEventListener("touch", function(event)
 		  if(event.phase == "ended") then
 		    ant.fsm:die(ant.index)
-		    score = score + 1
-		    save_score()
 		  end
 		end)		
 		ants[table.getn(ants) + 1] = ant
@@ -449,7 +483,8 @@ function scene:create( event )
 		    { name = 'stay',  from = 'roaming',  to = 'idle' },
 		    { name = 'attack',  from = {'idle', 'waiting', 'roaming'},  to = 'scarejump' },
 		    { name = 'wait',  from = 'roaming',  to = 'waiting' },
-		    { name = 'kill',  from = 'idle',  to = 'killing' }
+		    { name = 'kill',  from = 'idle',  to = 'killing' },
+		    { name = 'die',  from = 'idle',  to = 'dying' }
 		  },
 		  callbacks = {
 		  	ondying = function(self, event, from, to, idx)
@@ -547,6 +582,7 @@ function scene:create( event )
 		    	end)
 		    end,
 		    onscarejump =    function(self, event, from, to, idx) 
+				-- rect1.alpha = 1; rect2.alpha = 2
 	    		audio.play( spider_attacking_sound )
 
 	    		timer.performWithDelay(100, function()
@@ -563,10 +599,14 @@ function scene:create( event )
 						end
 					end
 
+				--transition.to(background, { x = 100, y = 100, time = 100})
+				--transition.scaleTo(background, { xScale = .35, yScale = .35, time = 100})
+
 					transition.to( spiders[idx], { y=spiders[idx].y - 60, time=100, transition=easing.inExpo, onComplete=function(event)
 						transition.scaleTo( spiders[idx], { xScale=20, yScale=20, time=250, transition=easing.inExpo } )		    
 						transition.to( spiders[idx], { y=spiders[idx].y + 250, time=150, transition=easing.inExpo, onComplete=function(event)
 							timer.performWithDelay(1000, function()
+								spiders[idx].alpha = 0
 								showRestartWindow()
 							end)
 						end } )		    
@@ -600,9 +640,13 @@ function scene:create( event )
 		spider.index = table.getn(spiders) + 1
 		Runtime:addEventListener("enterFrame", spider)
 		spider:addEventListener("touch", function(event)
-		  if(event.phase == "ended") then
-		    spider.fsm:attack(spider.index)
-		  end
+			if (spider.fsm.current ~= "idle") then
+				  if(event.phase == "ended") then
+				    spider.fsm:attack(spider.index)
+				  end
+			else 
+				spider.fsm:die(spider.index)
+			end
 		end)
 		spiders[table.getn(spiders) + 1] = spider
 		spider.fsm:roam(table.getn(spiders))	
@@ -610,9 +654,10 @@ function scene:create( event )
 		sceneGroup:insert(spider)
 	end
 
-	local rect1 = display.newRect(display.contentWidth / 4, display.contentHeight / 2, 10, display.contentHeight)
-	local rect2 = display.newRect(display.contentWidth - (display.contentWidth / 4), display.contentHeight / 2, 10, display.contentHeight)
+	rect1 = display.newRect(display.contentWidth / 4, display.contentHeight / 2, 10, display.contentHeight)
+	rect2 = display.newRect(display.contentWidth - (display.contentWidth / 4), display.contentHeight / 2, 10, display.contentHeight)
 
+	rect1.alpha = 1; rect2.alpha = 1
 	rect1:toFront(); rect2:toFront()
 
 	sceneGroup:insert(rect1)
@@ -626,6 +671,8 @@ function scene:show( event )
         
 	end
 	if (event.phase == "did") then
+
+		audio.play( rain_drop_sound, { loops = -1 })
 
 		appodeal.init( adListener, { appKey="2b48850c59ebc26513bceb49edfbeda08aa473f0c5dc9846", smartBanners = false } )
 
