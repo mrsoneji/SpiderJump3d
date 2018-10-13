@@ -5,7 +5,7 @@ local blur = require "blur"
 local machine = require('statemachine')
 local _ = require("underscore")
 local appodeal = require( "plugin.appodeal" )
-
+local Shadows = require('2dshadows.shadows')
 local adNetwork = "admob"
 local appID = "DontTouchTheSpider"
 
@@ -46,6 +46,9 @@ local rain_drop_sound
 -- level settings
 _G.spiders_quantity = composer.getVariable("spiders_quantity")
 _G.ants_quantity = composer.getVariable("ants_quantity")
+
+-- constants
+local DEFAULT_SCALE = 0.08
 
 function load_records()
 	local contents = "0"
@@ -330,8 +333,27 @@ function scene:create( event )
 	    loopCount = 0        -- Optional ; default is 0
 	}
 
-	local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
-	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
+	-- local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
+	-- local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
+
+	local sheetData = { width=438, height=395, numFrames=1, sheetContentWidth=438, sheetContentHeight=395}
+	local imageSheet = graphics.newImageSheet( "Black-Widow.png", sheetData )
+
+	local shadows = Shadows:new( 0.9, {0.7,0.7,0.7} )
+
+	-- CREATE A SHADOW CASTER OBJECT
+	--local crate1 = shadows:AddShadowCaster({-90,-90, -90,90, 90,90, 90,-90}, "img/crate.png",180,180)
+	--crate1.x,crate1.y = 150,0
+
+	-- CREATE A SHADOW CASTER OBJECT
+	--local crate2 = shadows:AddShadowCaster({-45,-45, -45,45, 45,45, 45,-45}, "img/crate.png",90,90)
+	--crate2.x,crate2.y = -120, -200
+
+	-- CREATE BLUE LIGHT
+	local light1 = shadows:AddLight( 2, {1,1,1}, 0.9, 4 )
+	light1.x, light1.y = -100, -100
+	light1:SetFlicker( true, "damaged", 0.7 )
+
 
 	for i = 1, tonumber(_G.ants_quantity) do
 		local antSplat = display.newImage("splat01.png")
@@ -340,7 +362,7 @@ function scene:create( event )
 		ant.splat = antSplat
 		ant.splat.x = -1000
 		ant.splat.y = -1000
-		ant:scale(0.35, 0.35)
+		ant:scale(DEFAULT_SCALE, DEFAULT_SCALE)
 		ant.x = math.random(display.contentWidth)
 		ant.y = math.random(display.contentHeight)
 		ant:setFillColor(255, 0, 255, 255)
@@ -654,12 +676,14 @@ function scene:create( event )
 		sceneGroup:insert(spider)
 	end
 
+
 	rect1 = display.newRect(display.contentWidth / 4, display.contentHeight / 2, 10, display.contentHeight)
 	rect2 = display.newRect(display.contentWidth - (display.contentWidth / 4), display.contentHeight / 2, 10, display.contentHeight)
 
 	rect1.alpha = 1; rect2.alpha = 1
 	rect1:toFront(); rect2:toFront()
 
+	sceneGroup:insert(shadows)
 	sceneGroup:insert(rect1)
 	sceneGroup:insert(rect2)
 end
