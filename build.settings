@@ -9,8 +9,8 @@ settings =
 	{
 		-- Supported values for orientation:
 		-- portrait, portraitUpsideDown, landscapeLeft, landscapeRight
-		default = "landscapeRight",
-		supported = { "landscapeRight", },
+		default = "landscapeLeft",
+		supported = { "landscapeLeft", },
 	},
 
 	--
@@ -27,6 +27,7 @@ settings =
 			"android.permission.ACCESS_FINE_LOCATION",
 			"com.android.vending.CHECK_LICENSE"
 		},
+		googlePlayGamesAppId = "504934568675",
 	},
 
 	--
@@ -50,6 +51,7 @@ settings =
 				"Icon-167.png",
 				"Icon-180.png",
 			},
+			NSAppTransportSecurity = { NSAllowsArbitraryLoads=true },
 		},
 	},
 
@@ -62,7 +64,12 @@ settings =
 		{
 		    publisherId = "com.coronalabs",
 		    supportedPlatforms = { iphone=true, android=true, appletvos=true }
-		}      
+		},
+		["plugin.gpgs"] =
+        {
+            publisherId = "com.coronalabs",
+            supportedPlatforms = { android=true }
+        }    
 	},
 
 	--

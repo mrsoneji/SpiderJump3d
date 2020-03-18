@@ -5,7 +5,7 @@ local blur = require "blur"
 local machine = require('statemachine')
 local _ = require("underscore")
 local appodeal = require( "plugin.appodeal" )
-
+local Shadows = require('2dshadows.shadows')
 local adNetwork = "admob"
 local appID = "DontTouchTheSpider"
 
@@ -17,6 +17,43 @@ local combo_counter_quantity = 1
 local text_score, score_title, hearth_ui_1, hearth_ui_2, hearth_ui_3, pause_dialog, combo_counter_text, transition_id_combo_animation
 
 display.setDefault( 'isShaderCompilerVerbose', true )
+
+_G.GUI = require( "widget_candy" )
+
+_G.GUI.LoadTheme("theme_1", "themes/theme_1/")
+_G.GUI.LoadTheme("theme_2", "themes/theme_2/")
+_G.GUI.LoadTheme("theme_3", "themes/theme_3/")
+_G.GUI.LoadTheme("theme_4", "themes/theme_4/")
+_G.GUI.LoadTheme("theme_5", "themes/theme_5/")
+_G.GUI.LoadTheme("theme_3", "themes/theme_3/")
+_G.GUI.LoadTheme("theme_7", "themes/theme_7/")
+
+_G.GUI.ShowTouches(true, 10, {1,.5,0})
+
+_G.theme = "theme_2"
+
+local scene = composer.newScene()
+
+-- resources
+local spiders = {}
+local ants = {}
+local blurredGroup
+local background
+local rect1, rect2
+
+-- sounds
+local spider_attacking_sound
+local ant_splat_sound
+
+-- ambient sounds
+local rain_drop_sound
+
+-- level settings
+_G.spiders_quantity = composer.getVariable("spiders_quantity")
+_G.ants_quantity = composer.getVariable("ants_quantity")
+
+-- constants
+local DEFAULT_SCALE = 0.08
 
 function load_records()
 	local contents = "0"
@@ -242,7 +279,7 @@ function showFinishWindow ()
         {
         	parentGroup = "Win1",
         	name = "nextButton",
-            x               = "66%", 
+            x               = "54%", 
             y               = "38%", 
             width      = "42%",
             height      = "auto",
@@ -260,6 +297,26 @@ function showFinishWindow ()
             	composer.gotoScene("restart")
         	end            
         })
+
+    local newText = _G.GUI.NewText(
+        {
+            x               = "2.5%",                
+            y               = "1.8%", 
+            width           = "100%",
+            --height          = get_value_according_orientation("9%", "15%"),
+            scale           = 1,
+            -- height          = "auto",
+            name            = "TXT_SCORE",            
+            fontSize        = 24,
+            font            = "Gill Sans",
+            parentGroup     = "Win1",                     
+            align           = "center",
+            theme           = _G.theme, 
+            caption         = "Your score: " .. score,
+            textAlign       = "center",
+            textColor       = {0,0,0}
+        } 
+    )
 
 	_G.GUI.GetHandle("Win1"):layout(true) 	
 
@@ -380,8 +437,9 @@ function scene:create( event )
 	display.setDefault("magTextureFilter", "nearest")
 	display.setDefault("minTextureFilter", "nearest")
 
-	spider_attacking_sound = audio.loadSound( "spider_attack_uagh.wav" )
-	ant_splat_sound = audio.loadSound( "splat.wav" )
+	spider_attacking_sound = audio.loadSound( "assets/spider_attack_uagh.wav" )
+	ant_splat_sound = audio.loadSound( "assets/splat.wav" )
+	rain_drop_sound = audio.loadSound ( "assets/raindrops.wav" )
 
 	-- loading shaders
 	loadKernel("filter.spider.add")
@@ -427,6 +485,21 @@ function scene:create( event )
 	-- local sheetData = { width=522, height=522, numFrames=11, sheetContentWidth=2088, sheetContentHeight=1566 }
 	local sheetData = { width=100, height=140, numFrames=4, sheetContentWidth=400, sheetContentHeight=140 }
 	local imageSheet = graphics.newImageSheet( "ants_v2.png", sheetData )
+
+	-- local shadows = Shadows:new( 0.9, {0.7,0.7,0.7} )
+
+	-- CREATE A SHADOW CASTER OBJECT
+	--local crate1 = shadows:AddShadowCaster({-90,-90, -90,90, 90,90, 90,-90}, "img/crate.png",180,180)
+	--crate1.x,crate1.y = 150,0
+
+	-- CREATE A SHADOW CASTER OBJECT
+	--local crate2 = shadows:AddShadowCaster({-45,-45, -45,45, 45,45, 45,-45}, "img/crate.png",90,90)
+	--crate2.x,crate2.y = -120, -200
+
+	-- CREATE BLUE LIGHT
+	-- local light1 = shadows:AddLight( 2, {1,1,1}, 0.9, 4 )
+	-- light1.x, light1.y = -100, -100
+	-- light1:SetFlicker( true, "damaged", 0.7 )
 
 	for i = 1, tonumber(_G.ants_quantity) do
 		local antSplat = display.newImage("splat01.png")
@@ -736,6 +809,9 @@ function scene:create( event )
 						end
 					end
 
+				--transition.to(background, { x = 100, y = 100, time = 100})
+				--transition.scaleTo(background, { xScale = .35, yScale = .35, time = 100})
+
 					transition.to( spiders[idx], { y=spiders[idx].y - 60, time=100, transition=easing.inExpo, onComplete=function(event)
 						if (_G.allow_scare_jump == true) then
 							transition.scaleTo( spiders[idx], { xScale=20, yScale=20, time=250, transition=easing.inExpo } )		    
@@ -955,6 +1031,8 @@ function scene:show( event )
 	end
 	if (event.phase == "did") then
 
+		audio.play( rain_drop_sound, { loops = -1 })
+
 		appodeal.init( adListener, { appKey="2b48850c59ebc26513bceb49edfbeda08aa473f0c5dc9846", smartBanners = false } )
 
 		-- spider.x = display.contentWidth/2 ; spider.y = display.contentHeight/2
@@ -990,6 +1068,18 @@ function scene:destroy( event )
      text_score:removeSelf()
      text_score = nil
 end
+
+function scene:key(event)
+
+    if ( event.keyName == "back" ) then
+        composer.removeScene('game')
+		composer.gotoScene('mainmenu', { effect = 'crossFade', time = 333 })
+		
+		return true
+	end
+end
+
+Runtime:addEventListener( "key", scene )
 
 scene:addEventListener("create", scene)
 scene:addEventListener("show", scene)
