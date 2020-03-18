@@ -10,8 +10,13 @@ local adNetwork = "admob"
 local appID = "DontTouchTheSpider"
 
 local score = composer.getVariable("score")
+local lives = 3
+local combo_counter_delta = 0
+local combo_counter_quantity = 1
 
-local text_score
+local text_score, score_title, hearth_ui_1, hearth_ui_2, hearth_ui_3, pause_dialog, combo_counter_text, transition_id_combo_animation
+
+display.setDefault( 'isShaderCompilerVerbose', true )
 
 function load_records()
 	local contents = "0"
@@ -40,8 +45,24 @@ function load_records()
 	return contents
 end
 
-local function save_score()
+local function save_lives()
+	if (lives == 2) then
+		hearth_ui_1.isVisible = false
+	end
+	if (lives == 1) then
+		hearth_ui_1.isVisible = false
+		hearth_ui_2.isVisible = false
+	end
+	if (lives == 0) then
+		hearth_ui_1.isVisible = false
+		hearth_ui_2.isVisible = false
+		hearth_ui_3.isVisible = false
 
+		showRestartWindow()
+	end
+end
+
+local function save_score()
 	composer.setVariable("score", score)
 	text_score.text = score
 	if (tonumber(load_records()) > score) then
@@ -77,7 +98,7 @@ local function adListener( event )
 	-- just a quick debug message to check what response we got from the library
 	-- print("Message received from the ads library: ", msg)
 
-    appodeal.show( "banner", { yAlign="top" } )
+    appodeal.show( "banner", { yAlign="bottom" } )
 
 	if event.isError then
     	
@@ -114,6 +135,8 @@ local ant_splat_sound
 -- level settings
 _G.spiders_quantity = composer.getVariable("spiders_quantity")
 _G.ants_quantity = composer.getVariable("ants_quantity")
+_G.current_level = composer.getVariable("current_level")
+_G.allow_scare_jump = composer.getVariable("allow_scare_jump")
 
 function antKilledEvent(idx)
 	if (_.every(ants, function(o) return o.fsm.current == "dying" end)) then
@@ -140,12 +163,12 @@ function showRestartWindow ()
 		{
 			x      = "center",
 			y      = "center",
-			width = "50%",
+			width = "40%",
 			height = "20%",
 			parentGroup = nil,
 			name   = "Win1",
 			theme  = _G.theme,
-			caption  = "                  UUGGHHHH!",
+			caption  = "UUGGHHHH!",
 			gradientColor1 = { 1,.5,0,0.3 },
 			gradientColor2 = { 0,0,0,.3 },
 			gradientDirection = "up"
@@ -229,8 +252,9 @@ function showFinishWindow ()
             caption = "next",
             pressColor = {1,1,1,.25},
             onRelease = function( event ) 
-            	composer.setVariable("spiders_quantity", _G.spiders_quantity + 1)
-            	composer.setVariable("ants_quantity", _G.ants_quantity + 3)
+            	-- composer.setVariable("spiders_quantity", _G.spiders_quantity + 1)
+				composer.setVariable("ants_quantity", _G.ants_quantity + 3)
+				composer.setVariable("current_level", _G.current_level + 1)
 
             	composer.removeScene("game")
             	composer.gotoScene("restart")
@@ -278,10 +302,80 @@ function getNearbyAnt( pCenter, pObjects, pRange, pDebug )
     return result
 end
 
+function loadKernel(name)
+	local kernel = require( "kernel." .. name )
+	graphics.defineEffect( kernel )
+end
+
+function freeze_bugs()
+	for i = 1, tonumber(_G.ants_quantity) do
+		ants[i]:pause()
+		transition.pause(ants[i].transitionId)
+		if (ants[i].timerId ~= nil) then
+			timer.pause(ants[i].timerId)
+		end
+	end
+end
+
+function unfreeze_bugs()
+	for i = 1, tonumber(_G.ants_quantity) do
+		if (ants[i].fsm.current == 'roaming') then
+			ants[i]:play()
+		end
+		transition.resume(ants[i].transitionId)
+
+		if (ants[i].timerId ~= nil) then
+			timer.resume(ants[i].timerId)
+		end
+	end
+end
+
+function pause_game()
+	freeze_bugs()
+
+	-- Show pause dialog
+	pause_dialog.isVisible = true
+	resume_button.isVisible = true
+	reload_button.isVisible = true
+end
+
+function resume_game()
+	unfreeze_bugs()
+
+	-- Hide pause dialog
+	pause_dialog.isVisible = false
+	resume_button.isVisible = false
+	reload_button.isVisible = false
+end
+
+function get_initial_random_position(multiplier)
+	if (math.random(2) == 2) then
+		return display.contentWidth + (75 * multiplier), math.random(25, display.contentHeight - 45), 'right'
+	end
+	return -(25 * multiplier), math.random(25, display.contentHeight - 45), 'left'
+end
+
 function scene:create( event )
 	local sceneGroup = self.view
 
-	text_score = display.newText( score, 15, 15, native.newFont("Gill Sans", 24), 24 )
+	local options = {
+		text = score,
+		x = 280 + 120,
+		y = 60,
+		font = "24358_MAIAN",
+		fontSize = 52,
+		align = "left"
+	 }
+	text_score = display.newText( options )
+	score_title = display.newText({
+		text = 'score',
+		x = 140 + 120,
+		y = 34,
+		font = "24358_MAIAN",
+		fontSize = 18,
+		align = "left"
+	})
+	score_title:setFillColor( 164 / 255, 153 / 255, 153 / 255 )
 
 	display.setDefault("magTextureFilter", "nearest")
 	display.setDefault("minTextureFilter", "nearest")
@@ -289,24 +383,50 @@ function scene:create( event )
 	spider_attacking_sound = audio.loadSound( "spider_attack_uagh.wav" )
 	ant_splat_sound = audio.loadSound( "splat.wav" )
 
+	-- loading shaders
+	loadKernel("filter.spider.add")
+	loadKernel("filter.spider.bulge")
+	loadKernel("filter.spider.moon")
+
 	-- loading background
-	background = display.newImage("wall.jpg")
+	background = display.newImage("grass.png")
 	background.x = display.contentWidth / 2
 	background.y = display.contentHeight / 2
-
+	-- background.fill.effect = "filter.spider.moon"
 	sceneGroup:insert(background)
+
+	-- loading fruits
+	for i = 0, 4 do
+		fruit_apple = display.newImage('apple.png')
+		fruit_apple.x = 48 * i
+		fruit_apple.y = math.random(-12, 12) + display.contentWidth / 2
+		fruit_apple:rotate(math.random(-45,45))
+		fruit_apple.isVisible = false
+		fruit_apple:scale(6, 6)
+		sceneGroup:insert(fruit_apple)
+	end
+
+	-- loading bottom ui
+	down_marker = display.newImage('down marker ui.png')
+	down_marker.x = display.contentWidth / 2
+	down_marker.y = 646
+	down_marker.isVisible = false
+	sceneGroup:insert(down_marker)
 
 	-- loading ants
 	local sequenceData =
 	{
-	    name="walking",
-	    frames= { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 }, -- frame indexes of animation, in image sheet
+		name="walking",
+		frames= { 1, 2, 3, 4}, -- frame indexes of animation, in image sheet
+	    -- frames= { 1, 2, 3, 5, 6, 7, 9, 4, 8 }, -- frame indexes of animation, in image sheet
 	    time = 150,
 	    loopCount = 0        -- Optional ; default is 0
 	}
 
-	local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
-	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
+	--local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
+	-- local sheetData = { width=522, height=522, numFrames=11, sheetContentWidth=2088, sheetContentHeight=1566 }
+	local sheetData = { width=100, height=140, numFrames=4, sheetContentWidth=400, sheetContentHeight=140 }
+	local imageSheet = graphics.newImageSheet( "ants_v2.png", sheetData )
 
 	for i = 1, tonumber(_G.ants_quantity) do
 		local antSplat = display.newImage("splat01.png")
@@ -314,11 +434,16 @@ function scene:create( event )
 
 		ant.splat = antSplat
 		ant.splat.x = -1000
-		ant.splat.y = -1000
-		ant:scale(0.35, 0.35)
-		ant.x = math.random(display.contentWidth)
-		ant.y = math.random(display.contentHeight)
-		ant:setFillColor(255, 0, 255, 255)
+		ant.splat.y = -1000		
+		ant:scale(1, 1)
+
+		local x, y, orientation = get_initial_random_position(i)
+		-- ant.x = math.random(display.contentWidth)
+		-- ant.y = math.random(display.contentHeight)
+		ant.x = x
+		ant.y = y
+		ant.orientation = orientation
+		-- ant:setFillColor(255, 0, 255, 255)
 		ant.fsm = machine.create({
 		  initial = 'idle',
 		  events = {
@@ -340,42 +465,85 @@ function scene:create( event )
 				ants[idx].splat.x = ants[idx].x
 				ants[idx].splat.y = ants[idx].y
 				ants[idx].splat:scale(.5, .5)
---				ants[idx].splat:toBack()
+				ants[idx].splat:toBack()
 
-				local scores = display.newText( "+1", ants[idx].x, ants[idx].y, native.newFont("Gill Sans", 9), 9 )
-				transition.to ( scores, { time=1500, y=ants[idx].y - 15, onComplete=function() scores:removeSelf() end })
-
-		    	timer.performWithDelay(math.random(250, 750), function()
+				timer.performWithDelay(math.random(250, 750), function()
 		    		ants[idx]:pause()
 		    	end)		  		
 
+				local extra = 0
+				local ms_since_last_touch = system.getTimer() - combo_counter_delta
+				combo_counter_delta = system.getTimer()
+				if (ms_since_last_touch < 3000) then
+					if (transition_id_combo_animation ~= nil) then
+						transition.cancel(transition_id_combo_animation)
+						combo_counter_text.isVisible = false
+					end
+					combo_counter_quantity = combo_counter_quantity + 1
+					extra = 10
+					combo_counter_text = display.newText( 'COMBO x'..combo_counter_quantity, ants[ant.index].x, ants[ant.index].y, native.newFont("Gill Sans", 32), 32 )
+					transition_id_combo_animation = transition.to ( combo_counter_text, { time=1500, y=ants[ant.index].y - 45, onComplete=function() combo_counter_text:removeSelf() end })
+				else 
+					local scores = display.newText( "+10", ants[idx].x, ants[idx].y, native.newFont("Gill Sans", 32), 32 )
+					transition.to ( scores, { time=1500, y=ants[idx].y - 45, onComplete=function() scores:removeSelf() end })
+
+					combo_counter_quantity = 1
+				end
+	
+				score = score + 10 + extra
+	
 		    	antKilledEvent(idx)
 		  	end,
-		    onroam =    function(self, event, from, to, idx)
-		    	local angle = math.random(360)
+			onroam =    function(self, event, from, to, idx)
+				-- Because we need to set a range of possible angles to reach the center
+				local angle = math.random(45 + 20, 135 - 20)
+				if (ants[idx].orientation == 'right') then
+					angle = math.random(225 + 20, 315 - 20)
+				end
+
 				local angleX = ants[idx].x + 120 * math.cos( math.rad( angle - 90 ) )
 				local angleY = ants[idx].y + 120 * math.sin( math.rad( angle - 90 ) )
 
-				angleX = (angleX < 0) and 0 or angleX
-				angleX = (angleX > display.contentWidth) and display.contentWidth or angleX
+				--angleX = (angleX > display.contentWidth) and display.contentWidth or angleX
 				angleY = (angleY < 50) and 50 or angleY
 				angleY = (angleY > display.contentHeight) and display.contentHeight or angleY
 
 				ants[idx]:play()
 				ants[idx].rotation = 0
 		    	ants[idx]:rotate(angle)
-		        ants[idx].transitionId = transition.to ( ants[idx], { time=math.random(750, 1500), x=angleX , y=angleY , onComplete=function() 
-		        	if (math.random(5) == 5) then
+				ants[idx].transitionId = transition.to ( ants[idx], { time=math.random(200, 750), x=angleX , y=angleY , onComplete=function() 
+		        	if (math.random(5) > 3) then
 		        		ants[idx].fsm:stay(idx)
 		        	else
 		        		ants[idx].fsm:roam(idx)
 		        	end
-		        end})
+				end})
+				
+				if (ants[idx].orientation == 'right') then
+					-- angleX = (angleX < 0) and 0 or angleX
+					if (angleX < -100) then
+						lives = lives - 1
+						save_lives()
+						ants[idx]:pause()
+						transition.pause(ants[idx].transitionId)
+						print('Me pase de la raya')
+					end
+				end
+				if (ants[idx].orientation == 'left') then
+					-- angleX = (angleX < 0) and 0 or angleX
+					if (angleX > display.contentWidth + 100) then
+						lives = lives - 1
+						save_lives()
+						ants[idx]:pause()
+						transition.pause(ants[idx].transitionId)
+						print('Me pase de la raya')
+					end
+				end
 			end,
 		    onidle =    function(self, event, from, to, idx)
 		    	ants[idx]:pause()
 
-		    	timer.performWithDelay(math.random(1500, 5000), function()
+		    	ants[idx].timerId = timer.performWithDelay(math.random(1500, 5000), function()
 		    		if (ants[idx].fsm.current ~= 'dying') then
 						ants[idx].fsm:roam(idx)
 					end
@@ -405,7 +573,7 @@ function scene:create( event )
 					end
 
 					transition.scaleTo( ants[idx], { xScale=20, yScale=20, time=300, transition=easing.inExpo, onComplete=function()
-					end } )		    
+					end })
 
 					ants[idx]:toFront()	    			
 	    		end)
@@ -415,11 +583,11 @@ function scene:create( event )
 		ant.index = table.getn(ants) + 1
 		ant:addEventListener("touch", function(event)
 		  if(event.phase == "ended") then
-		    ant.fsm:die(ant.index)
-		    score = score + 1
+			ant.fsm:die(ant.index)
+			
 		    save_score()
 		  end
-		end)		
+		end)
 		ants[table.getn(ants) + 1] = ant
 		ant.fsm:roam(table.getn(ants))	
 	
@@ -437,14 +605,14 @@ function scene:create( event )
 	}
 
 	local sheetData = { width=120, height=148, numFrames=19, sheetContentWidth=480, sheetContentHeight=740 }
-	local imageSheet = graphics.newImageSheet( "spider_crawl.png", sheetData )
+	local imageSheet = graphics.newImageSheet( "spider_crawl_6pixel.png", sheetData )
 
 	for i = 1, tonumber(_G.spiders_quantity) do
 		local spider = display.newSprite( imageSheet, sequenceData )
 
-		spider:scale(0.35, 0.35)
-		spider.x = math.random(display.contentWidth)
-		spider.y = math.random(display.contentHeight)
+		spider:scale(1, 1)
+		spider.x = display.contentWidth / 2
+		spider.y = display.contentHeight / 2
 		spider:setFillColor(255, 255, 255, 255)
 
 		spider.fsm = machine.create({
@@ -463,13 +631,16 @@ function scene:create( event )
 				spiders[idx].timeScale = math.random(1, 10) / 10
 				audio.play ( ant_splat_sound )
 
-				local scores = display.newText( "+3", spiders[idx].x, spiders[idx].y, native.newFont("Gill Sans", 9), 9 )
-				transition.to ( scores, { time=1500, y=spiders[idx].y - 15, onComplete=function() scores:removeSelf() end })
+				local scores = display.newText( "+3", spiders[idx].x, spiders[idx].y, native.newFont("Gill Sans", 32), 32 )
+				transition.to ( scores, { time=1500, y=spiders[idx].y - 45, onComplete=function() scores:removeSelf() end })
 				if (spiders[idx].antAimed ~= nil and spiders[idx].aimCircle ~= nil) then
 					spiders[idx].antAimed = nil
 					spiders[idx].aimCircle:removeSelf()
 					spiders[idx].aimCircle = nil
 				end	
+
+				score = score + 3
+				save_score()
 
 		    	timer.performWithDelay(math.random(250, 750), function()
 		    		spiders[idx]:pause()
@@ -521,10 +692,10 @@ function scene:create( event )
 		    	timer.performWithDelay(1000, function()
 					local nearbyAnt = getNearbyAnt(spiders[idx], ants, 100)[1]
 					if (nearbyAnt ~= nil) then
-						spider.aimCircle = display.newCircle(ants[nearbyAnt.index].x, ants[nearbyAnt.index].y, 10)
+						spider.aimCircle = display.newCircle(ants[nearbyAnt.index].x, ants[nearbyAnt.index].y, 25)
 						spider.aimCircle:setFillColor(0,0,0,0)
-						spider.aimCircle.strokeWidth = 2
-						spider.aimCircle:setStrokeColor( 1, 0, 0 )
+						spider.aimCircle.strokeWidth = 12
+						spider.aimCircle:setStrokeColor( 233 / 255, 38 / 255, 52 / 255 )
 						spider.antAimed = nearbyAnt.index
 						
 						sceneGroup:insert(spider.aimCircle)
@@ -546,8 +717,10 @@ function scene:create( event )
 		    		-- spiders[idx].fsm:attack(idx) 
 		    	end)
 		    end,
-		    onscarejump =    function(self, event, from, to, idx) 
-	    		audio.play( spider_attacking_sound )
+			onscarejump =    function(self, event, from, to, idx)
+				if (_G.allow_scare_jump == true) then
+					audio.play( spider_attacking_sound )
+				end
 
 	    		timer.performWithDelay(100, function()
 			    	-- background.fill.effect = "filter.blurGaussian"
@@ -564,12 +737,16 @@ function scene:create( event )
 					end
 
 					transition.to( spiders[idx], { y=spiders[idx].y - 60, time=100, transition=easing.inExpo, onComplete=function(event)
-						transition.scaleTo( spiders[idx], { xScale=20, yScale=20, time=250, transition=easing.inExpo } )		    
-						transition.to( spiders[idx], { y=spiders[idx].y + 250, time=150, transition=easing.inExpo, onComplete=function(event)
-							timer.performWithDelay(1000, function()
-								showRestartWindow()
-							end)
-						end } )		    
+						if (_G.allow_scare_jump == true) then
+							transition.scaleTo( spiders[idx], { xScale=20, yScale=20, time=250, transition=easing.inExpo } )		    
+							transition.to( spiders[idx], { y=spiders[idx].y + 250, time=150, transition=easing.inExpo, onComplete=function(event)
+								timer.performWithDelay(1000, function()
+									showRestartWindow()
+								end)
+							end } )
+						else 
+							showRestartWindow()
+						end
 					end } )		    
 
 					spiders[idx]:toFront()	    			
@@ -614,13 +791,160 @@ function scene:create( event )
 		sceneGroup:insert(spider)
 	end
 
-	local rect1 = display.newRect(display.contentWidth / 4, display.contentHeight / 2, 10, display.contentHeight)
-	local rect2 = display.newRect(display.contentWidth - (display.contentWidth / 4), display.contentHeight / 2, 10, display.contentHeight)
+	-- local rect1 = display.newRect(display.contentWidth, 0, display.contentWidth, display.contentHeight * 2)
+	-- local rect2 = display.newRect(0, 0, display.contentWidth, display.contentHeight * 2)
 
-	rect1:toFront(); rect2:toFront()
+	-- rect1:toFront(); rect2:toFront()
+	
+	-- local colorTable = { 0, 0, 1, 0.3 }
+	-- rect1:setFillColor( unpack(colorTable) )
+	-- rect1:addEventListener("touch", function(event)
+	-- 	score = score + 100
+	-- 	save_score()
+	-- end)
+	-- sceneGroup:insert(rect1)
+	-- local colorTable = { 1, 0, 0, 0.3 }
+	-- rect2:setFillColor( unpack(colorTable) )
+	-- rect2:addEventListener("touch", function(event)
+	-- 	score = score + 100
+	-- 	save_score()
+	-- end)
+	-- sceneGroup:insert(rect2)
 
-	sceneGroup:insert(rect1)
-	sceneGroup:insert(rect2)
+	-- Creating pause UI
+	local pause_button = display.newImage('pause button.png')
+	pause_button.x = 25 * 3
+	pause_button.y = 37 * 2
+	pause_button:addEventListener("touch", function(event)
+		if (event.phase == "ended") then
+			pause_game()
+		end
+	end)
+	sceneGroup:insert(pause_button)
+	
+	-- Creating score UI
+	local score_ui = display.newImage('score ui.png')
+	score_ui.x = 100 * 3
+	score_ui.y = 37 * 2
+	sceneGroup:insert(score_ui)
+
+	-- Creating lives UI
+	local lives_ui = display.newImage('lives ui.png')
+	lives_ui.x = 1133
+	lives_ui.y = 37 * 2
+	sceneGroup:insert(lives_ui)
+
+	-- Creating tutorial UI
+	local tutorial_ui = display.newImage('tutorial ui.png')
+	tutorial_ui.x = 548
+	tutorial_ui.y = 590
+	sceneGroup:insert(tutorial_ui) 
+
+	-- Creating pause dialog
+	pause_dialog = display.newImage('pause dialog.png')
+	pause_dialog.x = display.contentWidth / 2
+	pause_dialog.y = 350
+	pause_dialog.isVisible = false
+	sceneGroup:insert(pause_dialog) 
+	
+	-- Creating resume button
+	resume_button = display.newImage('resume button.png')
+	resume_button.x = display.contentWidth / 2 - 100
+	resume_button.y = 385
+	resume_button.isVisible = false
+	resume_button:addEventListener("touch", function(event)
+		if (event.phase == "ended") then
+			resume_game()
+		end
+	end)
+	sceneGroup:insert(resume_button) 
+
+	-- Creating reload button
+	reload_button = display.newImage('reload button.png')
+	reload_button.x = display.contentWidth / 2 + 100
+	reload_button.y = 385
+	reload_button.isVisible = false
+	reload_button:addEventListener("touch", function(event)
+		composer.removeScene("game")
+        composer.gotoScene("restart")
+	end)
+	sceneGroup:insert(reload_button) 
+	
+	local texts_tutorial = {}
+	texts_tutorial[0] = "Don't touch the spider..!                Even when she tries to eat!"
+	texts_tutorial[1] = "The Spider can help you killing the ants!"
+	text_tutorial = display.newText({
+		text = texts_tutorial[1],
+		x = 375,
+		y = 620,
+		width = 625,
+		font = "24358_MAIAN",
+		fontSize = 36,
+		align = "left"
+	})
+	text_tutorial:rotate(-7)
+	sceneGroup:insert(text_tutorial)
+
+	-- Creating wave UI
+	local wave_ui = display.newImage('wave ui.png')
+	wave_ui.x = 1124
+	wave_ui.y = 355
+	sceneGroup:insert(wave_ui)
+
+	text_level = display.newText({
+		text = 'LEVEL',
+		x = 1075,
+		y = 368,
+		font = "24358_MAIAN",
+		fontSize = 32,
+		align = "left"
+	})
+	sceneGroup:insert(text_level)
+
+	text_level_number = display.newText({
+		text = string.format("%02d", _G.current_level),
+		x = 1116,
+		y = 396,
+		font = "24358_MAIAN",
+		fontSize = 32,
+		align = "left"
+	})
+	text_level_number:setFillColor(unpack({ 212 / 255, 241 / 255, 25 / 255, 1 }))
+	sceneGroup:insert(text_level_number)
+
+	-- Creating hearth UI
+	hearth_ui_1 = display.newImage('hearth.png')
+	hearth_ui_1.x = 1133 - 56
+	hearth_ui_1.y = 37 * 2
+	sceneGroup:insert(hearth_ui_1)
+	hearth_ui_2 = display.newImage('hearth.png')
+	hearth_ui_2.x = 1133
+	hearth_ui_2.y = 37 * 2
+	sceneGroup:insert(hearth_ui_2)
+	hearth_ui_3 = display.newImage('hearth.png')
+	hearth_ui_3.x = 1133 + 56
+	hearth_ui_3.y = 37 * 2
+	sceneGroup:insert(hearth_ui_3)
+
+	freeze_bugs()
+
+	timer.performWithDelay(1000, function() 
+		transition.to ( wave_ui, { time=500, x=1124+500, transition=easing.inBack, onComplete=function()  end })
+		transition.to ( text_level, { time=750, x=1075+500, transition=easing.inBack, onComplete=function()  end })
+		transition.to ( text_level_number, { time=750, x=1116+500, transition=easing.inBack, onComplete=function()  end })
+	end)
+
+	timer.performWithDelay(2500, function() 
+		transition.to ( tutorial_ui, { time=300, y=590+500, transition=easing.inQuad, onComplete=function()  end })
+		transition.to ( text_tutorial, { time=300, y=620+500, transition=easing.inQuad, onComplete=function()  end })
+
+		unfreeze_bugs()
+	end)
+
+end
+
+function scene:enterFrame( event )
+	-- print(system.getTimer())
 end
 
 function scene:show( event )
@@ -669,6 +993,7 @@ end
 
 scene:addEventListener("create", scene)
 scene:addEventListener("show", scene)
+Runtime:addEventListener("enterFrame", scene)
 scene:addEventListener("hide", scene)
 scene:addEventListener("destroy", scene)
 
