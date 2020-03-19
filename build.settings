@@ -9,8 +9,8 @@ settings =
 	{
 		-- Supported values for orientation:
 		-- portrait, portraitUpsideDown, landscapeLeft, landscapeRight
-		default = "landscapeLeft",
-		supported = { "landscapeLeft", },
+		default = "landscapeRight",
+		supported = { "landscapeRight", },
 	},
 
 	--
@@ -28,6 +28,13 @@ settings =
 			"com.android.vending.CHECK_LICENSE"
 		},
 		googlePlayGamesAppId = "504934568675",
+		applicationChildElements =
+		{
+				[[
+						<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID"
+								android:value="ca-app-pub-4440061822908213~9545721418"/>  -- replace with your app id. See: https://goo.gl/fQ2neu
+				]],
+		},
 	},
 
 	--
@@ -59,17 +66,13 @@ settings =
 	-- Plugins section
 	--
 	plugins =
-	{	
-		["plugin.appodeal"] =
-		{
-		    publisherId = "com.coronalabs",
-		    supportedPlatforms = { iphone=true, android=true, appletvos=true }
-		},
+	{
 		["plugin.gpgs"] =
-        {
-            publisherId = "com.coronalabs",
-            supportedPlatforms = { android=true }
-        }    
+		{
+				publisherId = "com.coronalabs",
+				supportedPlatforms = { android=true }
+		},
+		['plugin.appodeal'] = { publisherId = 'com.coronalabs' },
 	},
 
 	--
