@@ -4,10 +4,10 @@ local aspectRatio = display.pixelHeight / display.pixelWidth
 
 application = {
    content = {
-      width = aspectRatio > 1.5 and 720 or math.ceil( 1280 / aspectRatio ),
-      height = aspectRatio < 1.5 and 1280 or math.ceil( 720 * aspectRatio ),
+      width = aspectRatio > 1.5 and 720 or math.ceil( 1440 / aspectRatio ),
+      height = aspectRatio < 1.5 and 1440 or math.ceil( 720 * aspectRatio ),
       scale = "letterBox",
-      fps = 30,
+      fps = 60,
       audioPlayFrequency = 44100,
       imageSuffix = {
          ["@2x"] = 1.5,
