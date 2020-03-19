@@ -13,6 +13,8 @@ local environment = system.getInfo( "environment" )
 
 local licensing = require( "licensing" )
  
+local score_ui
+
 local function licensingListener( event )
  
     if not ( event.isVerified ) then
@@ -128,10 +130,6 @@ function load_records()
 	file = nil	
 end
 
-function scene:create( event )
-	
-end
-
 local function handleButtonEvent( event )
 
     if ( "ended" == event.phase ) then
@@ -172,7 +170,7 @@ function scene:show( event )
 		    direction = "up"
 		}
 
-		local rect = display.newRect( display.contentCenterX, display.contentCenterY, 600, 700 )
+		local rect = display.newRect( display.contentCenterX, display.contentCenterY, 1440, 720 )
 		rect.fill = paint
 
 		local spiderIdle01 = display.newImage("idle01.png")
@@ -217,6 +215,24 @@ function scene:show( event )
 		highscoreButton.x = display.contentCenterX
 		highscoreButton.y = display.contentHeight - 40
 		sceneGroup:insert( highscoreButton )
+
+		-- Creating score UI
+		score_ui = display.newImage('score ui.png')
+		score_ui.x = 200
+		score_ui.y = 620
+		sceneGroup:insert(score_ui)
+
+		-- Creating score UI
+		title = display.newImage('title.png')
+		title.x = 1583 / 2 - 220
+		title.y = 165 / 2
+		sceneGroup:insert(title)
+
+		play_button = display.newImage('play button main menu.png')
+		play_button.x = 292 / 2 + 494
+		play_button.y = 292 / 2 + 233
+		play_button:addEventListener("touch", handleButtonEvent)
+		sceneGroup:insert(play_button)
  	end
 end
 
