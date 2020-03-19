@@ -15,6 +15,7 @@ local combo_counter_delta = 0
 local combo_counter_quantity = 1
 
 local text_score, score_title, hearth_ui_1, hearth_ui_2, hearth_ui_3, pause_dialog, combo_counter_text, transition_id_combo_animation
+local score_ui
 
 display.setDefault( 'isShaderCompilerVerbose', true )
 
@@ -554,7 +555,7 @@ function scene:create( event )
 					end
 					combo_counter_quantity = combo_counter_quantity + 1
 					extra = 10
-					combo_counter_text = display.newText( 'COMBO x'..combo_counter_quantity, ants[ant.index].x, ants[ant.index].y, native.newFont("Gill Sans", 32), 32 )
+					combo_counter_text = display.newText( 'COMBO x'..combo_counter_quantity, ants[ant.index].x, ants[ant.index].y, native.newFont("09622_CopyofMaiandraGDDemiBold2", 32), 32 )
 					transition_id_combo_animation = transition.to ( combo_counter_text, { time=1500, y=ants[ant.index].y - 45, onComplete=function() combo_counter_text:removeSelf() end })
 				else 
 					local scores = display.newText( "+10", ants[idx].x, ants[idx].y, native.newFont("Gill Sans", 32), 32 )
@@ -899,7 +900,7 @@ function scene:create( event )
 	sceneGroup:insert(pause_button)
 	
 	-- Creating score UI
-	local score_ui = display.newImage('score ui.png')
+	score_ui = display.newImage('score ui.png')
 	score_ui.x = 100 * 3
 	score_ui.y = 37 * 2
 	sceneGroup:insert(score_ui)
