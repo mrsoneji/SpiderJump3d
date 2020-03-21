@@ -53,7 +53,7 @@ end
 
 if ( globalData.gpgs ) then
     -- Initialize Google Play Games Services
-    globalData.gpgs.init( gpgsInitListener )
+    -- globalData.gpgs.init( gpgsInitListener )
 end
 
 local function submitScoreListener( event )
@@ -162,11 +162,11 @@ function scene:show( event )
 	end
 	if (event.phase == "did") then
 		local sceneGroup = self.view
-
+-- 56, 52, 52
 		local paint = {
 		    type = "gradient",
-		    color1 = { 1, 0, 0.4 },
-		    color2 = { 1, 0, 0, 0.2 },
+		    color1 = { 56 / 255, 52 / 255 },
+		    color2 = { 56 / 255, 52 / 255, 52 / 255 },
 		    direction = "up"
 		}
 
@@ -194,9 +194,10 @@ function scene:show( event )
 			fillColor = { default={1,1,1,1}, over={1,0.1,0.7,0.4} },
 			strokeColor = { default={0,0,0}, over={0.8,0.8,1,1} },
 			strokeWidth = 4
-		})
+		})                 
 		doneButton.x = display.contentCenterX
 		doneButton.y = display.contentHeight - 90
+		doneButton.isVisible = false
 		sceneGroup:insert( doneButton )
 
 		local highscoreButton = widget.newButton({
@@ -214,6 +215,7 @@ function scene:show( event )
 		})
 		highscoreButton.x = display.contentCenterX
 		highscoreButton.y = display.contentHeight - 40
+		highscoreButton.isVisible = false
 		sceneGroup:insert( highscoreButton )
 
 		-- Creating score UI
