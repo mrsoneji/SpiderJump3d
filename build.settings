@@ -72,7 +72,7 @@ settings =
 				publisherId = "com.coronalabs",
 				supportedPlatforms = { android=true }
 		},
-		['plugin.appodeal'] = { publisherId = 'com.coronalabs' },
+		['plugin.appodeal.base'] = { publisherId = 'com.coronalabs' },
 	},
 
 	--
