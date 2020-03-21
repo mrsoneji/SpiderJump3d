@@ -14,8 +14,9 @@ local lives = 3
 local combo_counter_delta = 0
 local combo_counter_quantity = 1
 
-local text_score, score_title, hearth_ui_1, hearth_ui_2, hearth_ui_3, pause_dialog, combo_counter_text, transition_id_combo_animation
+local text_score, score_title, hearth_ui_1, hearth_ui_2, hearth_ui_3, you_lose_dialog, pause_dialog, combo_counter_text, transition_id_combo_animation
 local score_ui
+local backgrounds = {}
 
 display.setDefault( 'isShaderCompilerVerbose', true )
 
@@ -34,6 +35,10 @@ _G.GUI.ShowTouches(true, 10, {1,.5,0})
 _G.theme = "theme_2"
 
 local scene = composer.newScene()
+
+
+local onSpiderTouchEvent
+local onAntTouchEvent
 
 -- resources
 local spiders = {}
@@ -102,7 +107,7 @@ end
 
 local function save_score()
 	composer.setVariable("score", score)
-	text_score.text = score
+	
 	if (tonumber(load_records()) > score) then
 		return
 	end
@@ -191,48 +196,22 @@ function antKilledEvent(idx)
 end
 
 function showRestartWindow ()
-	local o = nil
-     o = _G.GUI.GetHandle("Win1")
-     if (o ~= nil) then
-     	return
-     end
+	you_lose_dialog.isVisible = true
+	reload_button_you_lose.isVisible = true
+	you_lose_dialog:toFront()
+	reload_button_you_lose:toFront()
 
-	local window = _G.GUI.NewWindow(
-		{
-			x      = "center",
-			y      = "center",
-			width = "40%",
-			height = "20%",
-			parentGroup = nil,
-			name   = "Win1",
-			theme  = _G.theme,
-			caption  = "UUGGHHHH!",
-			gradientColor1 = { 1,.5,0,0.3 },
-			gradientColor2 = { 0,0,0,.3 },
-			gradientDirection = "up"
-		} 
-	)
-	local restartButton = _G.GUI.NewButton(
-        {
-        	parentGroup = "Win1",
-        	name = "restartButton",
-            x               = "center", 
-            y               = "38%", 
-			width = "42%",
-			height = "auto",            
-            theme      = _G.theme,
-            textAlign  = "left",
-            caption = "restart",
-            pressColor = {1,1,1,.25},
-            onRelease = function( event ) 
-            	composer.removeScene("game")
-            	composer.gotoScene("restart")
-        	end
-        })	
+	freeze_bugs()
 
-	_G.GUI.GetHandle("Win1"):layout(true) 	
+	for i = 1, tonumber(_G.spiders_quantity) do
+		-- spiders[i]:removeEventListener('touch', onSpiderTouchEvent)
+	end
 
-	scene.view:insert(window)
+	for i = 1, tonumber(_G.ants_quantity) do
+		ants[i]:removeEventListener('touch', ants[i])
+	end
+
+	-- scene.view:insert(window)
 	-- scene.view:insert(restartButton)
 end
 
@@ -289,10 +268,11 @@ function showFinishWindow ()
             icon = 6,
             caption = "next",
             pressColor = {1,1,1,.25},
-            onRelease = function( event ) 
+						onRelease = function( event ) 
+							save_score()
             	-- composer.setVariable("spiders_quantity", _G.spiders_quantity + 1)
-				composer.setVariable("ants_quantity", _G.ants_quantity + 3)
-				composer.setVariable("current_level", _G.current_level + 1)
+							composer.setVariable("ants_quantity", _G.ants_quantity + 5)
+							composer.setVariable("current_level", _G.current_level + 1)
 
             	composer.removeScene("game")
             	composer.gotoScene("restart")
@@ -407,10 +387,15 @@ function resume_game()
 end
 
 function get_initial_random_position(multiplier)
-	if (math.random(2) == 2) then
-		return display.contentWidth + (75 * multiplier), math.random(25, display.contentHeight - 45), 'right'
+	local multiplier_coef = 1
+	if (math.fmod (multiplier, 5)) == 0 then
+		-- multiplier_coef = multiplier / 5
 	end
-	return -(25 * multiplier), math.random(25, display.contentHeight - 45), 'left'
+	
+	if (math.random(1) == 2) then
+		return display.contentWidth + ((75 * multiplier) * multiplier_coef), math.random(25, display.contentHeight - 45), 'right'
+	end
+	return -((30 * multiplier) * multiplier_coef), math.random(25, display.contentHeight - 45), 'left'
 end
 
 function scene:create( event )
@@ -418,7 +403,7 @@ function scene:create( event )
 
 	local options = {
 		text = score,
-		x = 280 + 120,
+		x = 280 + 100,
 		y = 60,
 		font = "24358_MAIAN",
 		fontSize = 52,
@@ -448,7 +433,10 @@ function scene:create( event )
 	loadKernel("filter.spider.moon")
 
 	-- loading background
-	background = display.newImage("grass.png")
+	backgrounds[0] = 'grass.png'
+	backgrounds[1] = 'asphalt.png'
+	backgrounds[2] = 'wood.png'
+	background = display.newImage(backgrounds[math.random(0, 2)])
 	background.x = display.contentWidth / 2
 	background.y = display.contentHeight / 2
 	-- background.fill.effect = "filter.spider.moon"
@@ -531,7 +519,7 @@ function scene:create( event )
 		  	ondying = function(self, event, from, to, idx)
 		  		transition.pause(ants[idx].transitionId)
 
-		    	ants[idx]:setFillColor(0, 255, 0, 125)
+		    	ants[idx]:setFillColor(0, 1, 0, 45 / 255)
 				ants[idx].timeScale = math.random(1, 10) / 10
 				audio.play ( ant_splat_sound )
 
@@ -542,13 +530,15 @@ function scene:create( event )
 				ants[idx].splat:toBack()
 
 				timer.performWithDelay(math.random(250, 750), function()
-		    		ants[idx]:pause()
+						if (ants[idx] ~= nil) then
+							ants[idx]:pause()
+						end
 		    	end)		  		
 
 				local extra = 0
 				local ms_since_last_touch = system.getTimer() - combo_counter_delta
 				combo_counter_delta = system.getTimer()
-				if (ms_since_last_touch < 3000) then
+				if (ms_since_last_touch < 750) then
 					if (transition_id_combo_animation ~= nil) then
 						transition.cancel(transition_id_combo_animation)
 						combo_counter_text.isVisible = false
@@ -600,7 +590,6 @@ function scene:create( event )
 						save_lives()
 						ants[idx]:pause()
 						transition.pause(ants[idx].transitionId)
-						print('Me pase de la raya')
 					end
 				end
 				if (ants[idx].orientation == 'left') then
@@ -610,7 +599,6 @@ function scene:create( event )
 						save_lives()
 						ants[idx]:pause()
 						transition.pause(ants[idx].transitionId)
-						print('Me pase de la raya')
 					end
 				end
 			end,
@@ -655,13 +643,21 @@ function scene:create( event )
 		  }
 		})
 		ant.index = table.getn(ants) + 1
-		ant:addEventListener("touch", function(event)
-		  if(event.phase == "ended") then
-			ant.fsm:die(ant.index)
+		onAntTouchEvent = function (event)
+			if(event.phase == "ended") then
+				ant.fsm:die(ant.index)
 			
-		    save_score()
-		  end
-		end)
+				text_score.text = score
+			end
+		end
+		function ant:touch( event )
+			if(event.phase == "ended") then
+				ant.fsm:die(ant.index)
+			
+				text_score.text = score
+			end
+		end
+		ant:addEventListener("touch")
 		ants[table.getn(ants) + 1] = ant
 		ant.fsm:roam(table.getn(ants))	
 	
@@ -701,7 +697,7 @@ function scene:create( event )
 		  },
 		  callbacks = {
 		  	ondying = function(self, event, from, to, idx)
-		    	spiders[idx]:setFillColor(0, 255, 0, 125)
+		    	spiders[idx]:setFillColor(0, 1, 0, 75 / 255) 
 				spiders[idx].timeScale = math.random(1, 10) / 10
 				audio.play ( ant_splat_sound )
 
@@ -714,7 +710,7 @@ function scene:create( event )
 				end	
 
 				score = score + 3
-				save_score()
+				text_score.text = score
 
 		    	timer.performWithDelay(math.random(250, 750), function()
 		    		spiders[idx]:pause()
@@ -764,7 +760,7 @@ function scene:create( event )
 		    	spiders[idx]:pause()
 
 		    	timer.performWithDelay(1000, function()
-					local nearbyAnt = getNearbyAnt(spiders[idx], ants, 100)[1]
+					local nearbyAnt = getNearbyAnt(spiders[idx], ants, 500)[1]
 					if (nearbyAnt ~= nil) then
 						spider.aimCircle = display.newCircle(ants[nearbyAnt.index].x, ants[nearbyAnt.index].y, 25)
 						spider.aimCircle:setFillColor(0,0,0,0)
@@ -802,7 +798,7 @@ function scene:create( event )
 					-- transition.to( background.fill.effect.horizontal, { time=300, blurSize=30, transition=easing.outCirc } )
 					-- transition.to( background.fill.effect.vertical, { time=300, blurSize=30, transition=easing.outCirc } )			
 
-					for i, v in ipairs(spiders) do 
+					for i, v in ipairs(spiders) do
 						if (i ~= idx) then
 							-- v.fill.effect = "filter.blurGaussian"
 							--transition.to( v.fill.effect.horizontal, { time=1000, blurSize=30, transition=easing.outCirc } )
@@ -854,10 +850,10 @@ function scene:create( event )
 		spider.index = table.getn(spiders) + 1
 		Runtime:addEventListener("enterFrame", spider)
 		spider:addEventListener("touch", function(event)
-			if (spider.fsm.current ~= "idle") then
-				  if(event.phase == "ended") then
-				    spider.fsm:attack(spider.index)
-				  end
+				if (spider.fsm.current ~= "idle") then
+					if(event.phase == "ended") then
+						spider.fsm:attack(spider.index)
+					end
 			else 
 				spider.fsm:die(spider.index)
 			end
@@ -913,9 +909,9 @@ function scene:create( event )
 
 	-- Creating tutorial UI
 	local tutorial_ui = display.newImage('tutorial ui.png')
-	tutorial_ui.x = 548
+	tutorial_ui.x = 542 - 5
 	tutorial_ui.y = 590
-	sceneGroup:insert(tutorial_ui) 
+	sceneGroup:insert(tutorial_ui)
 
 	-- Creating pause dialog
 	pause_dialog = display.newImage('pause dialog.png')
@@ -923,7 +919,27 @@ function scene:create( event )
 	pause_dialog.y = 350
 	pause_dialog.isVisible = false
 	sceneGroup:insert(pause_dialog) 
+
+	-- Creating pause dialog
+	you_lose_dialog = display.newImage('you lose dialog.png')
+	you_lose_dialog.x = display.contentWidth / 2
+	you_lose_dialog.y = 320
+	you_lose_dialog.isVisible = false
+	sceneGroup:insert(you_lose_dialog) 
 	
+	-- Creating reload button
+	reload_button_you_lose = display.newImage('reload button.png')
+	reload_button_you_lose.x = display.contentWidth / 2
+	reload_button_you_lose.y = 385
+	reload_button_you_lose.isVisible = false
+	reload_button_you_lose:addEventListener("touch", function(event)
+		if (event.phase == "ended") then
+			composer.removeScene("game")
+			composer.gotoScene("restart")
+		end
+	end)
+	sceneGroup:insert(reload_button_you_lose) 
+
 	-- Creating resume button
 	resume_button = display.newImage('resume button.png')
 	resume_button.x = display.contentWidth / 2 - 100
@@ -952,7 +968,7 @@ function scene:create( event )
 	texts_tutorial[1] = "The Spider can help you killing the ants!"
 	text_tutorial = display.newText({
 		text = texts_tutorial[1],
-		x = 375,
+		x = 370,
 		y = 620,
 		width = 625,
 		font = "24358_MAIAN",
@@ -1032,7 +1048,7 @@ function scene:show( event )
 	end
 	if (event.phase == "did") then
 
-		audio.play( rain_drop_sound, { loops = -1 })
+		-- audio.play( rain_drop_sound, { loops = -1 })
 
 		appodeal.init( adListener, { appKey="2b48850c59ebc26513bceb49edfbeda08aa473f0c5dc9846", smartBanners = false } )
 
@@ -1053,21 +1069,31 @@ function scene:hide( event )
 end
 
 function scene:destroy( event )
-     local o = nil
-     o = _G.GUI.GetHandle("Win1")
-     if (o ~= nil) then
-     	 print("destroy win1")
-         o:destroy()
-     end
+		local o = nil
+		o = _G.GUI.GetHandle("Win1")
+		if (o ~= nil) then
+			print("destroy win1")
+				o:destroy()
+		end
 
-     o = _G.GUI.GetHandle("restartButton")
-     if (o ~= nil) then
-     	print("destroy restartButton")
-         o:destroy()
-     end
+		o = _G.GUI.GetHandle("restartButton")
+		if (o ~= nil) then
+			print("destroy restartButton")
+			o:destroy()
+		end
 
-     text_score:removeSelf()
-     text_score = nil
+		text_score:removeSelf()
+
+		for i = 1, tonumber(_G.ants_quantity) do
+			if (ants[i].transitionId ~= nil) then
+				transition.cancel(ants[i].transitionId)
+			end
+			if (ants[i].timerId ~= nil) then
+				timer.pause(ants[i].timerId)
+			end
+			ants[i].fsm = nil
+		 	ants[i] = nil
+		end
 end
 
 function scene:key(event)
